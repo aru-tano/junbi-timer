@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>じゅんびタイマー | Friendly Workshop</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=6">
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</head>
+<body>
+
+<!-- ==================== デバッグバー（?debug時のみ） ==================== -->
+<div id="debugBar" class="debug-bar" style="display:none;">
+  <span>🛠</span>
+  <button class="db-btn active" onclick="dbSetState('idle')">🏠 ふつう</button>
+  <button class="db-btn" onclick="dbSetState('prep')">⏰ じゅんび</button>
+  <button class="db-btn" onclick="dbSetState('out')">🏃 おでかけ</button>
+  <button class="db-btn" onclick="dbSetState('okaeri')">🎉 おかえり</button>
+  <button class="db-btn" onclick="dbSetState('missed')">😢 miss</button>
+  <div class="db-sep"></div>
+  <div class="db-slider">
+    <label>のこり:</label>
+    <input type="range" id="dbSlider" min="0" max="60" value="30" oninput="dbOnSlider(+this.value)">
+    <span class="db-val" id="dbSliderVal">30分</span>
+  </div>
+  <div class="db-sep"></div>
+  <button class="db-btn" onclick="dbEncounter()">🔴 遭遇</button>
+  <button class="db-btn" onclick="debugAddFriendship(20)">💕 +20exp</button>
+  <button class="db-btn" onclick="debugAddPoints(50)">💰 +50pt</button>
+  <button class="db-btn" onclick="openSettings()">⚙</button>
+</div>
+
+<!-- ==================== ともだちさがしオーバーレイ ==================== -->
+<div id="gachaOverlay"></div>
+
+<!-- ==================== 間に合わなかったオーバーレイ ==================== -->
+<div id="missedOverlay" class="missed-overlay"></div>
+
+<!-- ==================== おかえりオーバーレイ ==================== -->
+<div id="okaeriOverlay" class="okaeri-overlay"></div>
+
+<!-- ==================== 設定オーバーレイ ==================== -->
+<div id="settingsOverlay" class="overlay hidden">
+  <div class="overlay-panel settings-panel">
+    <div class="overlay-header">
+      <h2 class="overlay-title">予定のせってい</h2>
+      <button onclick="closeSettings()" class="close-btn">✕</button>
+    </div>
+    <div id="dayTabs" class="day-tabs"></div>
+    <div id="eventList" class="event-list"></div>
+    <button onclick="addEvent()" class="add-event-btn">＋ 予定をついか</button>
+    <div class="copy-section">
+      <button onclick="copyToAllDays()" class="copy-btn">この曜日の予定を全曜日にコピー</button>
+      <div class="copy-note">※ 上書きされます</div>
+    </div>
+
+    <!-- Googleカレンダー連携 -->
+    <div class="gcal-settings">
+      <div class="gcal-settings-title">📅 Googleカレンダー連携</div>
+      <div id="gcalSection"></div>
+    </div>
+
+    <!-- 切迫感しきい値 -->
+    <div class="urgency-settings">
+      <div class="urgency-settings-title">⏱ いそぎレベルの設定</div>
+      <div class="urgency-settings-desc">予定の開始時刻から何分前に、おしらせ・色が変わるかを設定します</div>
+      <div class="urgency-row">
+        <span class="urgency-dot" style="background:#22c55e"></span>
+        <span class="urgency-row-label">おしらせ開始 (ゆっくり)</span>
+        <input type="number" id="thCaution" min="5" max="60" step="1" class="urgency-input"
+          onchange="updateThreshold('caution', +this.value)">
+        <span class="urgency-unit">分前</span>
+      </div>
+      <div class="urgency-row">
+        <span class="urgency-dot" style="background:#f97316"></span>
+        <span class="urgency-row-label">そろそろ → いそいで</span>
+        <input type="number" id="thWarning" min="3" max="30" step="1" class="urgency-input"
+          onchange="updateThreshold('warning', +this.value)">
+        <span class="urgency-unit">分前</span>
+      </div>
+      <div class="urgency-row">
+        <span class="urgency-dot" style="background:#ef4444"></span>
+        <span class="urgency-row-label">いそいで → もうすぐ！</span>
+        <input type="number" id="thCritical" min="1" max="15" step="1" class="urgency-input"
+          onchange="updateThreshold('critical', +this.value)">
+        <span class="urgency-unit">分前</span>
+      </div>
+    </div>
+
+    <!-- メンテナンス（?debug 時のみ表示） -->
+    <div class="maint-settings" id="maintSection" style="display:none;">
+      <div class="maint-title">🔧 メンテナンス</div>
+
+      <!-- リセット -->
+      <div class="maint-sub-title">リセット</div>
+      <div class="maint-reset-grid">
+        <button class="maint-reset-btn" onclick="resetData('schedule')">📅 予定</button>
+        <button class="maint-reset-btn" onclick="resetData('pokemon')">🐾 ポケモン</button>
+        <button class="maint-reset-btn" onclick="resetData('calendar')">📆 カレンダー</button>
+        <button class="maint-reset-btn" onclick="resetData('points')">💰 ポイント</button>
+        <button class="maint-reset-btn maint-reset-all" onclick="resetData('all')">⚠ すべて初期化</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==================== タスク詳細オーバーレイ ==================== -->
+<div id="taskDetailOverlay" class="td-overlay"></div>
+
+<!-- ==================== メインビュー ==================== -->
+<div class="layout">
+
+  <!-- トップバー -->
+  <div class="topbar">
+    <span class="tb-date" id="dateLabel"></span>
+    <span class="tb-time" id="digitalClock"></span>
+    <div class="tb-right">
+      <span class="tb-stat" id="totalDaysChip">🌟 0日</span>
+      <span class="tb-stat" id="pointsChip">💰 0 pt</span>
+      <span class="tb-stat" id="streakChip" style="opacity:0.5; font-size:0.8rem;">🔥 0</span>
+    </div>
+  </div>
+
+  <!-- ===== 左カラム ===== -->
+  <div class="left-col">
+
+    <!-- フォーカスカード -->
+    <div class="focus-card" id="focusCard">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 160 160">
+          <circle class="ring-bg" cx="80" cy="80" r="66"/>
+          <circle class="ring-fill" id="ringFill" cx="80" cy="80" r="66"
+            stroke-dasharray="415" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-num" id="ringNum">--</div>
+          <div class="ring-unit">ぷん</div>
+        </div>
+      </div>
+      <div class="focus-info">
+        <div class="focus-label" id="focusLabel">✨ ゆっくり じゅんびしよう</div>
+        <div class="focus-name" id="focusName">--</div>
+        <div class="focus-timestr" id="focusTimeStr"></div>
+        <div class="focus-items" id="focusItems"></div>
+        <button class="focus-btn btn-depart hidden" id="btnDepart" onclick="depart()">🚀 しゅっぱつ！</button>
+      </div>
+    </div>
+
+    <!-- おでかけ中カード -->
+    <div class="outing-card" id="outingCard">
+      <div class="outing-icon">🏃</div>
+      <div class="outing-text" id="outingText">おでかけ中！</div>
+      <div class="outing-sub" id="outingSub"></div>
+      <div class="outing-timer" id="outingTimer"></div>
+      <button class="focus-btn btn-tadaima" onclick="tadaima()" style="margin-top:12px; max-width:280px;">
+        🏠 ただいま！
+      </button>
+    </div>
+
+    <!-- タスク一覧 -->
+    <div class="task-list" id="taskList">
+      <div class="tl-title">きょうの予定</div>
+      <div id="taskListBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== 右カラム ===== -->
+  <div class="right-col">
+
+    <div class="cal-section" id="calSection">
+      <div class="cal-header-row">
+        <div class="cal-nav">
+          <button class="cal-btn" onclick="calPrevMonth()">◀</button>
+          <span class="cal-title" id="calTitle"></span>
+          <button class="cal-btn" onclick="calNextMonth()">▶</button>
+        </div>
+        <span class="cal-total" id="calTotal"></span>
+      </div>
+      <div class="cal-weekday">
+        <span class="cw sun">日</span><span class="cw">月</span><span class="cw">火</span>
+        <span class="cw">水</span><span class="cw">木</span><span class="cw">金</span><span class="cw sat">土</span>
+      </div>
+      <div id="calGrid" class="cal-grid"></div>
+    </div>
+
+    <!-- パートナー -->
+    <div class="partner-area" id="partnerArea" onclick="onPartnerTap()">
+      <div class="partner-sprite-wrap">
+        <img class="partner-sprite" id="partnerSprite" src="" alt="">
+      </div>
+      <div class="partner-right">
+        <div class="partner-name" id="partnerName"></div>
+        <div class="partner-hearts" id="partnerHearts"></div>
+        <div class="partner-bar-wrap">
+          <div class="partner-bar-label">なかよし度</div>
+          <div class="partner-bar-track"><div class="partner-bar-fill" id="partnerBarFill"></div></div>
+        </div>
+        <div class="partner-speech" id="partnerSpeech"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:6px;">
+      <button onclick="showJournal()" class="settings-btn" style="flex:1;">📔 にっき</button>
+      <button onclick="openSettings()" class="settings-btn" style="flex:1;">⚙ 設定</button>
+    </div>
+    <div class="footer-note"><a href="../../catalog.html" class="footer-link">Friendly Workshop</a></div>
+  </div>
+
+</div>
+
+<!-- JS (alarm.js 除外) -->
+<script src="js/gcal.js?v=6"></script>
+<script src="js/pokedex.js?v=6"></script>
+<script src="js/calendar.js?v=6"></script>
+<script src="js/clock.js?v=6"></script>
+<script src="js/mission.js?v=6"></script>
+<script src="js/settings.js?v=6"></script>
+<script src="js/app.js?v=6"></script>
+</body>
+</html>

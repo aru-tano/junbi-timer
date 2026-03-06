@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レイアウト実験室 v3 | Dハイブリッド完成版</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #fdf6f0;
+  --orange: #f97316; --orange-dark: #ea580c;
+  --brown: #2d2621;
+  --g100: #f3f4f6; --g200: #e5e7eb; --g300: #d1d5db;
+  --g400: #9ca3af; --g500: #6b7280;
+  --green: #22c55e; --blue: #3b82f6; --red: #ef4444; --yellow: #fbbf24;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Zen Maru Gothic', system-ui, sans-serif;
+  background: #1a1a2e; color: var(--brown);
+}
+
+/* ========== デバッグバー ========== */
+.debug-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: #1a1a2e; padding: 8px 16px;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  border-bottom: 2px solid #333;
+}
+.debug-bar span { color: #fff; font-weight: 900; font-size: 0.85rem; }
+.db-btn {
+  padding: 5px 12px; border: 2px solid #555; border-radius: 8px;
+  background: transparent; color: #aaa; font-weight: 900; font-size: 0.75rem;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.db-btn.active { background: var(--orange); color: #fff; border-color: var(--orange); }
+.db-btn:hover:not(.active) { border-color: #888; color: #fff; }
+.db-sep { width: 1px; height: 24px; background: #444; margin: 0 4px; }
+.db-slider { display: flex; align-items: center; gap: 6px; }
+.db-slider label { color: #aaa; font-weight: 700; font-size: 0.75rem; }
+.db-slider input[type="range"] { width: 140px; }
+.db-slider .db-val { color: var(--orange); font-weight: 900; font-size: 0.9rem; min-width: 40px; }
+
+/* ========== iPad枠 ========== */
+.frame {
+  width: 1024px; height: 668px;
+  margin: 65px auto 30px;
+  border-radius: 16px; overflow: hidden;
+  background: var(--cream);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* ================================================================
+   レイアウト D: ハイブリッド完成版
+   ================================================================ */
+.layout {
+  display: grid; grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  height: 100%; overflow: hidden;
+}
+
+/* --- トップバー --- */
+.topbar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 20px; background: #fff; border-bottom: 1px solid var(--g200);
+}
+.tb-date { font-weight: 900; font-size: 1.1rem; color: var(--g500); }
+.tb-time { font-weight: 900; font-size: 2.5rem; line-height: 1; }
+.tb-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.tb-stat { font-weight: 900; font-size: 1.0rem; color: var(--orange); }
+
+/* --- 左カラム --- */
+.left-col {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 12px 12px 16px; overflow: hidden;
+}
+
+/* ★ フォーカスカード（リングゲージ＋次の予定） */
+.focus-card {
+  border-radius: 16px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 16px;
+  transition: background 0.5s, border-color 0.5s;
+  border: 2px solid transparent;
+}
+.ring-wrap { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+.ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: rgba(0,0,0,0.08); stroke-width: 12; }
+.ring-fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1s, stroke 0.5s; }
+.ring-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.ring-num { font-weight: 900; font-size: 3.2rem; line-height: 1; transition: color 0.5s; }
+.ring-unit { font-weight: 900; font-size: 1.0rem; color: var(--g400); }
+
+.focus-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.focus-label { font-size: 0.9rem; font-weight: 700; transition: color 0.5s; }
+.focus-name { font-size: 2rem; font-weight: 900; transition: color 0.5s; }
+.focus-timestr { font-size: 0.95rem; font-weight: 700; color: var(--g500); }
+.focus-items { font-size: 0.85rem; color: var(--g500); font-weight: 700; margin-top: 2px; }
+.focus-btn {
+  margin-top: 8px; padding: 14px; border: none; border-radius: 14px; width: 100%;
+  color: #fff; font-weight: 900; font-size: 1.4rem;
+  cursor: pointer; font-family: inherit;
+  transition: transform 0.1s;
+}
+.focus-btn:active { transform: scale(0.97); }
+.btn-depart {
+  background: linear-gradient(135deg, var(--orange), #f59e0b);
+  box-shadow: 0 4px 16px rgba(249,115,22,0.3);
+}
+.btn-tadaima {
+  background: linear-gradient(135deg, var(--green), #4ade80);
+  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
+}
+
+/* ★ パートナーカード — 横並び：スプライト大きめ＋吹き出し */
+.partner-card {
+  display: flex; align-items: center; gap: 14px;
+  background: #fff; border-radius: 16px; padding: 12px 16px;
+  border: 1px solid var(--g200); cursor: pointer;
+  transition: background 0.2s;
+  flex: 0 0 auto;
+}
+.partner-card:hover { background: #fefce8; }
+.partner-sprite {
+  width: 120px; height: 120px; object-fit: contain;
+  animation: partnerBob 2s ease infinite;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+}
+@keyframes partnerBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+.partner-right { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.partner-name { font-weight: 900; font-size: 1.2rem; }
+.partner-hearts { font-size: 1.1rem; color: var(--orange); letter-spacing: 2px; }
+.partner-level { font-size: 0.8rem; font-weight: 700; color: var(--g400); }
+.partner-speech {
+  background: #fff7ed; border: 2px solid #fed7aa; border-radius: 12px;
+  padding: 8px 14px; font-weight: 700; font-size: 1.05rem;
+  position: relative; margin-top: 4px;
+}
+.partner-speech::before {
+  content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+  border: 8px solid transparent; border-right-color: #fed7aa;
+}
+
+/* ★ タスク一覧 */
+.task-list {
+  background: #fff; border-radius: 12px; padding: 10px 12px;
+  border: 1px solid var(--g200); overflow-y: auto; flex: 1;
+}
+.tl-title { font-size: 0.95rem; font-weight: 900; color: var(--g500); margin-bottom: 6px; }
+.tl-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px; border-radius: 8px; margin-bottom: 3px; font-size: 1.0rem;
+}
+.tl-row.done { opacity: 0.35; }
+.tl-row.done .tl-name { text-decoration: line-through; }
+.tl-row.next { background: #fff7ed; border: 1px solid #fed7aa; }
+.tl-row.active { background: #dbeafe; border: 1px solid #bfdbfe; }
+.tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tl-name { font-weight: 900; flex: 1; }
+.tl-time { font-weight: 700; font-size: 0.85rem; color: var(--g400); }
+.tl-badge {
+  font-size: 0.7rem; font-weight: 900; padding: 2px 6px; border-radius: 4px;
+  color: #fff; white-space: nowrap;
+}
+
+/* --- 右カラム --- */
+.right-col {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 16px 12px 12px; overflow: hidden;
+  border-left: 1px solid var(--g200);
+}
+
+/* ★ カレンダー大 */
+.cal-section {
+  flex: 1; background: #fff; border-radius: 12px; padding: 12px;
+  border: 1px solid var(--g200); overflow-y: auto;
+}
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cal-title { font-size: 1.3rem; font-weight: 900; }
+.cal-btn { background: var(--g100); border: none; border-radius: 6px; width: 34px; height: 34px; font-weight: 900; cursor: pointer; color: var(--g500); }
+.cal-weekday { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.cw { font-size: 0.9rem; font-weight: 700; color: var(--g400); padding: 2px 0; }
+.cw.sun { color: var(--red); } .cw.sat { color: var(--blue); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-cell {
+  border-radius: 6px; padding: 4px 5px; min-height: 50px;
+  background: var(--g100); font-weight: 700; font-size: 1.1rem;
+  display: flex; flex-direction: column;
+}
+.cal-cell.today { outline: 3px solid var(--orange); outline-offset: -1px; }
+.cal-cell.perfect { background: #dcfce7; }
+.cal-cell.partial { background: #fef9c3; }
+.cal-cell.missed { background: #fee2e2; }
+.cal-cell.empty { background: transparent; }
+.cal-cell.future { color: var(--g300); }
+.cal-mini { font-size: 0.6rem; margin-top: auto; }
+
+/* ★ ステータスバー */
+.stats-bar { display: flex; gap: 8px; }
+.stat-chip {
+  flex: 1; display: flex; align-items: baseline; gap: 4px; justify-content: center;
+  background: #fff; border-radius: 10px; padding: 8px;
+  border: 1px solid var(--g200);
+}
+.stat-num { font-weight: 900; font-size: 1.4rem; color: var(--orange); }
+.stat-label { font-size: 0.8rem; font-weight: 700; color: var(--g400); }
+
+/* ================================================================
+   おでかけ中の左カラム変身
+   ================================================================ */
+.outing-card {
+  flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #ede9fe);
+  border-radius: 16px; border: 2px solid #bfdbfe; padding: 20px;
+  text-align: center; gap: 8px;
+}
+.outing-card.visible { display: flex; }
+.outing-icon { font-size: 3rem; animation: runBounce 1s ease infinite; }
+@keyframes runBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.outing-text { font-weight: 900; font-size: 1.5rem; color: var(--blue); }
+.outing-sub { font-size: 0.95rem; color: var(--g500); font-weight: 700; }
+.outing-timer { font-weight: 900; font-size: 2rem; color: var(--g400); }
+.outing-partner {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+}
+.outing-partner-sprite {
+  width: 100px; height: 100px; object-fit: contain; image-rendering: pixelated;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+  animation: partnerBob 2s ease infinite;
+}
+.outing-partner-speech {
+  background: #fff; border: 2px solid #e0e7ff; border-radius: 12px;
+  padding: 8px 16px; font-weight: 700; font-size: 1.1rem;
+}
+
+/* ================================================================
+   おかえり演出（オーバーレイ）
+   ================================================================ */
+.okaeri-overlay {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(0,0,0,0.5);
+  display: none; align-items: center; justify-content: center;
+}
+.okaeri-overlay.visible { display: flex; }
+.okaeri-card {
+  background: #fff; border-radius: 1.5rem; padding: 2rem;
+  text-align: center; max-width: 380px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: cardPop 0.5s ease;
+}
+@keyframes cardPop { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+.okaeri-sprite {
+  width: 160px; height: 160px; object-fit: contain;
+  animation: cheerJump 0.6s ease infinite;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
+}
+@keyframes cheerJump { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px) rotate(3deg)} }
+.okaeri-title { font-weight: 900; font-size: 1.8rem; color: var(--orange); margin: 0.5rem 0; }
+.okaeri-message {
+  background: #fff7ed; border: 2px solid #fed7aa; border-radius: 1rem;
+  padding: 0.6rem 1rem; font-weight: 700; font-size: 1.1rem; margin: 0.5rem 0;
+}
+.okaeri-points { font-weight: 900; font-size: 1.2rem; color: var(--green); margin: 0.5rem 0; }
+.okaeri-actions { display: flex; gap: 8px; justify-content: center; margin-top: 1rem; }
+.okaeri-btn {
+  padding: 12px 20px; border: none; border-radius: 12px;
+  font-weight: 900; font-size: 1.0rem; cursor: pointer; font-family: inherit;
+  transition: transform 0.1s;
+}
+.okaeri-btn:active { transform: scale(0.95); }
+.okaeri-btn-gacha { background: var(--orange); color: #fff; }
+.okaeri-btn-feed { background: #dcfce7; color: #15803d; }
+.okaeri-btn-close { background: var(--g200); color: var(--g500); }
+
+/* アニメーション */
+@keyframes urgentPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50% { box-shadow: 0 0 30px 8px rgba(239,68,68,0.25); }
+}
+.urgent-pulse { animation: urgentPulse 1.2s ease-in-out infinite; }
+@keyframes urgentPulseOrange {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+  50% { box-shadow: 0 0 20px 4px rgba(249,115,22,0.15); }
+}
+.urgent-pulse-orange { animation: urgentPulseOrange 2s ease-in-out infinite; }
+
+/* 非表示ヘルパー */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- デバッグバー -->
+<div class="debug-bar">
+  <span>🛠 デバッグ</span>
+  <button class="db-btn active" onclick="setState('idle')">🏠 ふつう</button>
+  <button class="db-btn" onclick="setState('prep')">⏰ じゅんび中</button>
+  <button class="db-btn" onclick="setState('out')">🏃 おでかけ中</button>
+  <button class="db-btn" onclick="setState('okaeri')">🎉 おかえり</button>
+  <div class="db-sep"></div>
+  <div class="db-slider">
+    <label>のこり:</label>
+    <input type="range" id="slider" min="0" max="60" value="18" oninput="onSlider(this.value)">
+    <span class="db-val" id="sliderVal">18分</span>
+  </div>
+</div>
+
+<!-- おかえり演出オーバーレイ -->
+<div class="okaeri-overlay" id="okaeriOverlay">
+  <div class="okaeri-card">
+    <img class="okaeri-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png" alt="partner">
+    <div class="okaeri-title">おかえりなさい！</div>
+    <div class="okaeri-message">じゅく、がんばったね！えらい！🌟</div>
+    <div class="okaeri-points">+30 pt ゲット！💰</div>
+    <div class="okaeri-actions">
+      <button class="okaeri-btn okaeri-btn-gacha" onclick="closeOkaeri()">🌿 ともだちさがし</button>
+      <button class="okaeri-btn okaeri-btn-feed" onclick="closeOkaeri()">🍎 おやつをあげる</button>
+      <button class="okaeri-btn okaeri-btn-close" onclick="closeOkaeri()">とじる</button>
+    </div>
+  </div>
+</div>
+
+<!-- メインフレーム -->
+<div class="frame">
+<div class="layout">
+
+  <!-- トップバー -->
+  <div class="topbar">
+    <span class="tb-date">3月4日（火）</span>
+    <span class="tb-time">15:42</span>
+    <div class="tb-right">
+      <span class="tb-stat">🔥 5 れんぞく</span>
+      <span class="tb-stat">💰 320 pt</span>
+    </div>
+  </div>
+
+  <!-- 左カラム -->
+  <div class="left-col">
+
+    <!-- フォーカスカード（ふつう/じゅんび中） -->
+    <div class="focus-card" id="focusCard">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 160 160">
+          <circle class="ring-bg" cx="80" cy="80" r="66"/>
+          <circle class="ring-fill" id="ringFill" cx="80" cy="80" r="66"
+            stroke-dasharray="415" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-num" id="ringNum">18</div>
+          <div class="ring-unit">ぷん</div>
+        </div>
+      </div>
+      <div class="focus-info">
+        <div class="focus-label" id="focusLabel">⏰ つぎの予定まで</div>
+        <div class="focus-name" id="focusName">🏫 じゅく</div>
+        <div class="focus-timestr">16:00 〜 18:00</div>
+        <div class="focus-items">📝 えんぴつ・ノート・テキスト</div>
+        <button class="focus-btn btn-depart" id="btnDepart" onclick="setState('out')">🚀 しゅっぱつ！</button>
+      </div>
+    </div>
+
+    <!-- おでかけ中カード -->
+    <div class="outing-card" id="outingCard">
+      <div class="outing-icon">🏃</div>
+      <div class="outing-text">じゅく いってらっしゃい！</div>
+      <div class="outing-sub">16:00 〜 18:00</div>
+      <div class="outing-timer" id="outingTimer">🕐 1:23:45</div>
+      <div class="outing-partner">
+        <img class="outing-partner-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png" alt="">
+        <div class="outing-partner-speech" id="outingSpeech">まってるよ〜！がんばって！</div>
+      </div>
+      <button class="focus-btn btn-tadaima" onclick="setState('okaeri')" style="margin-top:16px; max-width:280px;">
+        🏠 ただいま！
+      </button>
+    </div>
+
+    <!-- パートナーカード -->
+    <div class="partner-card" id="partnerCard">
+      <img class="partner-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png" alt="ヒトカゲ">
+      <div class="partner-right">
+        <div class="partner-name">ヒトカゲ Lv.3</div>
+        <div class="partner-hearts">♥♥♥♡♡</div>
+        <div class="partner-level">なかよし度 60%</div>
+        <div class="partner-speech" id="partnerSpeech">きょうもがんばろ！</div>
+      </div>
+    </div>
+
+    <!-- タスク一覧 -->
+    <div class="task-list" id="taskList">
+      <div class="tl-title">きょうの予定</div>
+      <div class="tl-row done">
+        <div class="tl-dot" style="background:#22c55e"></div>
+        <span class="tl-name">🏫 がっこう</span>
+        <span class="tl-time">8:00</span>
+        <span class="tl-badge" style="background:#22c55e">✓</span>
+      </div>
+      <div class="tl-row" id="taskJuku">
+        <div class="tl-dot" style="background:#f97316"></div>
+        <span class="tl-name">🏫 じゅく</span>
+        <span class="tl-time">16:00</span>
+        <span class="tl-badge" id="jukuBadge" style="background:#f97316">つぎ</span>
+      </div>
+      <div class="tl-row">
+        <div class="tl-dot" style="background:#3b82f6"></div>
+        <span class="tl-name">🎹 ピアノ</span>
+        <span class="tl-time">19:00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右カラム -->
+  <div class="right-col">
+    <div class="cal-section">
+      <div class="cal-nav">
+        <button class="cal-btn">◀</button>
+        <span class="cal-title">2026年 3月</span>
+        <button class="cal-btn">▶</button>
+      </div>
+      <div class="cal-weekday">
+        <span class="cw sun">日</span><span class="cw">月</span><span class="cw">火</span>
+        <span class="cw">水</span><span class="cw">木</span><span class="cw">金</span><span class="cw sat">土</span>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div>
+        <div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div>
+        <div class="cal-cell perfect">1<div class="cal-mini">🌟</div></div>
+        <div class="cal-cell perfect">2<div class="cal-mini">🌟</div></div>
+        <div class="cal-cell partial">3<div class="cal-mini">△</div></div>
+        <div class="cal-cell today">4</div>
+        <div class="cal-cell future">5</div><div class="cal-cell future">6</div>
+        <div class="cal-cell future">7</div><div class="cal-cell future">8</div>
+        <div class="cal-cell future">9</div><div class="cal-cell future">10</div>
+        <div class="cal-cell future">11</div><div class="cal-cell future">12</div>
+        <div class="cal-cell future">13</div><div class="cal-cell future">14</div>
+        <div class="cal-cell future">15</div><div class="cal-cell future">16</div>
+        <div class="cal-cell future">17</div><div class="cal-cell future">18</div>
+        <div class="cal-cell future">19</div><div class="cal-cell future">20</div>
+        <div class="cal-cell future">21</div><div class="cal-cell future">22</div>
+        <div class="cal-cell future">23</div><div class="cal-cell future">24</div>
+        <div class="cal-cell future">25</div><div class="cal-cell future">26</div>
+        <div class="cal-cell future">27</div><div class="cal-cell future">28</div>
+        <div class="cal-cell future">29</div><div class="cal-cell future">30</div>
+        <div class="cal-cell future">31</div>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-chip"><span class="stat-num">5</span><span class="stat-label">🔥れんぞく</span></div>
+      <div class="stat-chip"><span class="stat-num">320</span><span class="stat-label">💰pt</span></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const CIRC = 2 * Math.PI * 66; // ≈ 414.7
+const TOTAL = 60;
+
+const SPEECHES = {
+  calm:     ['きょうもがんばろ！', 'まだ じかん あるよ〜', 'ゆっくり じゅんびしよ'],
+  caution:  ['そろそろ じゅんび しよっか', 'じかん あるから だいじょうぶ！', 'もちもの チェック！'],
+  warning:  ['そろそろ だよ！じゅんび！', 'がんばれ〜！いそいで！', 'えんぴつ もった？'],
+  critical: ['いそいで！！もうすぐ！', 'はやくはやく〜！🔥', 'まにあうよ！ダッシュ！'],
+  out:      ['まってるよ〜！がんばって！', 'おうえん してるよ！', 'はやく かえってきてね！'],
+};
+
+let currentState = 'idle';
+let currentMin = 18;
+
+function getLevel(min) {
+  if (min <= 5) return 'critical';
+  if (min <= 15) return 'warning';
+  if (min <= 30) return 'caution';
+  return 'calm';
+}
+function getColor(lv) {
+  return { critical:'#ef4444', warning:'#f97316', caution:'#eab308', calm:'#22c55e' }[lv];
+}
+function getBg(lv) {
+  return {
+    critical: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+    warning:  'linear-gradient(135deg, #fff7ed, #fef3c7)',
+    caution:  'linear-gradient(135deg, #fefce8, #fef9c3)',
+    calm:     'linear-gradient(135deg, #f0fdf4, #dcfce7)'
+  }[lv];
+}
+function getBorder(lv) {
+  return { critical:'#fca5a5', warning:'#fed7aa', caution:'#fde68a', calm:'#bbf7d0' }[lv];
+}
+function getLabel(lv) {
+  return {
+    critical: '⚠️ もうすぐ！いそいで！',
+    warning:  '⏰ そろそろ じゅんび！',
+    caution:  '🕐 まだ すこし あるよ',
+    calm:     '✨ ゆっくり じゅんびしよう'
+  }[lv];
+}
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function updateRing(min) {
+  currentMin = min;
+  const lv = getLevel(min);
+  const color = getColor(lv);
+  const ratio = min / TOTAL;
+
+  // リング
+  const ring = document.getElementById('ringFill');
+  ring.style.strokeDashoffset = CIRC * ratio;
+  ring.style.stroke = color;
+
+  // 数字
+  const num = document.getElementById('ringNum');
+  num.textContent = min;
+  num.style.color = color;
+
+  // カード背景
+  const card = document.getElementById('focusCard');
+  card.style.background = getBg(lv);
+  card.style.borderColor = getBorder(lv);
+  card.classList.toggle('urgent-pulse', lv === 'critical');
+  card.classList.toggle('urgent-pulse-orange', lv === 'warning');
+
+  // ラベル
+  document.getElementById('focusLabel').textContent = getLabel(lv);
+  document.getElementById('focusLabel').style.color = color;
+
+  // イベント名の色
+  const name = document.getElementById('focusName');
+  name.style.color = lv === 'critical' ? '#dc2626' : lv === 'warning' ? '#ea580c' : '#2d2621';
+
+  // パートナーのセリフ
+  document.getElementById('partnerSpeech').textContent = pick(SPEECHES[lv]);
+
+  // タスク行のバッジ
+  const badge = document.getElementById('jukuBadge');
+  badge.style.background = color;
+  if (lv === 'critical') {
+    badge.textContent = '🔥急げ！';
+  } else if (lv === 'warning') {
+    badge.textContent = 'あと' + min + '分';
+  } else {
+    badge.textContent = 'つぎ';
+  }
+}
+
+function setState(state) {
+  currentState = state;
+
+  // デバッグボタンのハイライト
+  document.querySelectorAll('.db-btn').forEach(b => b.classList.remove('active'));
+  const labels = { idle:'ふつう', prep:'じゅんび中', out:'おでかけ中', okaeri:'おかえり' };
+  document.querySelectorAll('.db-btn').forEach(b => {
+    if (b.textContent.includes(labels[state])) b.classList.add('active');
+  });
+
+  const focusCard = document.getElementById('focusCard');
+  const outingCard = document.getElementById('outingCard');
+  const partnerCard = document.getElementById('partnerCard');
+  const taskList = document.getElementById('taskList');
+  const okaeriOv = document.getElementById('okaeriOverlay');
+  const taskJuku = document.getElementById('taskJuku');
+
+  // リセット
+  focusCard.classList.remove('hidden');
+  outingCard.classList.remove('visible');
+  partnerCard.classList.remove('hidden');
+  taskList.classList.remove('hidden');
+  okaeriOv.classList.remove('visible');
+  taskJuku.className = 'tl-row next';
+
+  switch (state) {
+    case 'idle':
+      updateRing(currentMin > 30 ? currentMin : 45);
+      document.getElementById('slider').value = currentMin > 30 ? currentMin : 45;
+      document.getElementById('sliderVal').textContent = (currentMin > 30 ? currentMin : 45) + '分';
+      break;
+
+    case 'prep':
+      updateRing(currentMin <= 30 ? currentMin : 12);
+      document.getElementById('slider').value = currentMin <= 30 ? currentMin : 12;
+      document.getElementById('sliderVal').textContent = (currentMin <= 30 ? currentMin : 12) + '分';
+      break;
+
+    case 'out':
+      focusCard.classList.add('hidden');
+      outingCard.classList.add('visible');
+      taskJuku.className = 'tl-row active';
+      document.getElementById('jukuBadge').textContent = '🏃 いま';
+      document.getElementById('jukuBadge').style.background = '#3b82f6';
+      document.getElementById('outingSpeech').textContent = pick(SPEECHES.out);
+      break;
+
+    case 'okaeri':
+      focusCard.classList.add('hidden');
+      outingCard.classList.add('visible');
+      okaeriOv.classList.add('visible');
+      taskJuku.className = 'tl-row done';
+      document.getElementById('jukuBadge').textContent = '✓';
+      document.getElementById('jukuBadge').style.background = '#22c55e';
+      break;
+  }
+}
+
+function onSlider(val) {
+  const min = parseInt(val);
+  document.getElementById('sliderVal').textContent = min + '分';
+  currentMin = min;
+  if (currentState === 'idle' || currentState === 'prep') {
+    updateRing(min);
+  }
+}
+
+function closeOkaeri() {
+  document.getElementById('okaeriOverlay').classList.remove('visible');
+}
+
+// 初期
+updateRing(18);
+</script>
+</body>
+</html>

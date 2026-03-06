@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>予定カード リデザイン提案 — じゅんびタイマー</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #fdf6f0; --orange: #f97316; --brown: #2d2621;
+  --g100: #f3f4f6; --g200: #e5e7eb; --g300: #d1d5db;
+  --g400: #9ca3af; --g500: #6b7280;
+  --green: #22c55e; --blue: #3b82f6; --red: #ef4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Zen Maru Gothic', system-ui, sans-serif; background: var(--cream); color: var(--brown); }
+
+.page-header { background: #fff; border-bottom: 2px solid var(--g200); padding: 20px 24px; }
+.page-title { font-weight: 900; font-size: 1.3rem; }
+.page-sub { font-size: 0.85rem; color: var(--g500); font-weight: 700; margin-top: 4px; }
+
+/* 問題分析 */
+.analysis { max-width: 540px; margin: 20px auto; padding: 0 20px; }
+.analysis h2 { font-weight: 900; font-size: 1rem; color: var(--red); margin-bottom: 8px; }
+.problem-list { list-style: none; margin-bottom: 16px; }
+.problem-list li {
+  padding: 6px 10px; margin-bottom: 4px; background: #fff; border-radius: 6px;
+  border-left: 3px solid var(--red); font-weight: 700; font-size: 0.8rem; line-height: 1.4;
+}
+
+/* タブ */
+.tab-bar {
+  display: flex; gap: 0; max-width: 540px; margin: 0 auto; padding: 0 20px;
+  border-bottom: 2px solid var(--g200); position: sticky; top: 0; background: var(--cream); z-index: 10;
+}
+.tab-btn {
+  flex: 1; padding: 12px 6px; background: none; border: none;
+  font-family: inherit; font-weight: 900; font-size: 0.85rem;
+  color: var(--g400); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;
+}
+.tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); background: #fff7ed; }
+.tab-btn:hover { color: var(--orange); }
+
+.tab-content { display: none; max-width: 540px; margin: 0 auto; padding: 20px; }
+.tab-content.active { display: block; }
+
+.proposal-title { font-weight: 900; font-size: 1.1rem; margin-bottom: 4px; }
+.proposal-sub { font-weight: 700; font-size: 0.8rem; color: var(--g500); margin-bottom: 16px; line-height: 1.5; }
+.section-label { font-weight: 900; font-size: 0.75rem; color: var(--g400); text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 6px; }
+
+.merit-list, .demerit-list { list-style: none; margin-bottom: 8px; }
+.merit-list li, .demerit-list li { padding: 4px 8px; margin-bottom: 3px; font-weight: 700; font-size: 0.8rem; border-radius: 5px; }
+.merit-list li { background: #f0fdf4; color: #15803d; }
+.demerit-list li { background: #fef2f2; color: #dc2626; }
+
+/* ===== 現状 ===== */
+.current-card {
+  background: #fff; border-radius: 16px; padding: 16px; border-left: 4px solid #8b5cf6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 12px;
+}
+.cur-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cur-name { flex: 1; font-weight: 900; font-size: 1.1rem; border-bottom: 1px solid var(--g200); padding: 2px 0; }
+.cur-del { color: var(--g300); font-size: 1.2rem; }
+.cur-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.85rem; font-weight: 700; color: var(--g500); }
+.cur-input { background: var(--g100); border: 1px solid var(--g200); border-radius: 8px; padding: 4px 8px; font-weight: 700; font-size: 0.85rem; font-family: inherit; width: 70px; text-align: center; }
+.cur-input-time { width: 90px; }
+.cur-todos-label { font-size: 0.75rem; color: var(--g400); margin-top: 8px; }
+.cur-todos-input { width: 100%; background: var(--g100); border: 1px solid var(--g200); border-radius: 8px; padding: 6px 10px; font-weight: 700; font-size: 0.85rem; font-family: inherit; margin-top: 4px; }
+.cur-colors { display: flex; gap: 4px; margin-top: 8px; }
+.cur-color { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.cur-color.sel { border-color: #333; transform: scale(1.15); }
+
+/* ============================
+   A案: コンパクトカード
+   ============================ */
+.a-card {
+  background: #fff; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 10px;
+}
+.a-card-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; cursor: pointer;
+}
+.a-color-bar { width: 6px; height: 40px; border-radius: 3px; flex-shrink: 0; }
+.a-info { flex: 1; }
+.a-name-row { display: flex; align-items: center; gap: 6px; }
+.a-name { font-weight: 900; font-size: 1rem; }
+.a-time-badge {
+  font-weight: 700; font-size: 0.7rem; color: #fff; background: var(--blue);
+  border-radius: 5px; padding: 2px 8px;
+}
+.a-meta { font-weight: 700; font-size: 0.75rem; color: var(--g400); margin-top: 2px; }
+.a-chevron { color: var(--g300); font-size: 0.9rem; }
+
+.a-card-body {
+  padding: 0 14px 14px; border-top: 1px solid var(--g100);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 12px;
+}
+.a-field { display: flex; flex-direction: column; gap: 3px; }
+.a-field-full { grid-column: 1 / -1; }
+.a-label { font-weight: 700; font-size: 0.7rem; color: var(--g400); }
+.a-input {
+  background: var(--g100); border: 1.5px solid var(--g200); border-radius: 10px;
+  padding: 8px 10px; font-weight: 700; font-size: 0.9rem; font-family: inherit;
+  outline: none; transition: border-color 0.2s;
+}
+.a-input:focus { border-color: var(--orange); }
+.a-colors-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.a-color-dot { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; transition: transform 0.15s; }
+.a-color-dot:hover { transform: scale(1.2); }
+.a-color-dot.sel { box-shadow: 0 0 0 2.5px #fff, 0 0 0 4.5px var(--brown); }
+.a-footer { grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: 4px; }
+.a-del-btn { background: none; border: none; color: var(--g300); font-weight: 700; font-size: 0.75rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
+.a-del-btn:hover { background: #fef2f2; color: var(--red); }
+
+/* ============================
+   B案: セクション分割＋大きめ入力
+   ============================ */
+.b-card {
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 10px;
+  overflow: hidden;
+}
+.b-card-top {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+  border-bottom: 1px solid var(--g200);
+}
+.b-icon { font-size: 1.4rem; }
+.b-name-input {
+  flex: 1; background: transparent; border: none; font-weight: 900; font-size: 1.1rem;
+  font-family: inherit; outline: none; color: var(--brown);
+}
+.b-del { background: none; border: none; color: var(--g300); font-size: 1.1rem; cursor: pointer; }
+.b-del:hover { color: var(--red); }
+
+.b-sections { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+.b-section {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--g100); border-radius: 12px;
+}
+.b-sec-icon { font-size: 1.1rem; flex-shrink: 0; }
+.b-sec-content { flex: 1; }
+.b-sec-label { font-weight: 700; font-size: 0.7rem; color: var(--g400); margin-bottom: 2px; }
+.b-sec-value { font-weight: 900; font-size: 1rem; color: var(--brown); }
+.b-sec-input {
+  background: #fff; border: 1.5px solid var(--g200); border-radius: 8px;
+  padding: 6px 10px; font-weight: 900; font-size: 1rem; font-family: inherit;
+  outline: none; width: 100%;
+}
+.b-sec-input:focus { border-color: var(--orange); }
+.b-sec-input-sm { width: 60px; text-align: center; }
+
+.b-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.b-tag {
+  background: #fff; border: 1.5px solid var(--g200); border-radius: 20px;
+  padding: 4px 10px; font-weight: 700; font-size: 0.8rem;
+  display: flex; align-items: center; gap: 4px;
+}
+.b-tag-del { color: var(--g400); cursor: pointer; font-size: 0.7rem; }
+.b-tag-add {
+  background: transparent; border: 1.5px dashed var(--g300); border-radius: 20px;
+  padding: 4px 10px; font-weight: 700; font-size: 0.8rem; color: var(--g400);
+  cursor: pointer;
+}
+
+.b-color-strip {
+  display: flex; gap: 0; border-radius: 10px; overflow: hidden; height: 8px;
+}
+.b-color-seg { flex: 1; cursor: pointer; transition: flex 0.2s; }
+.b-color-seg:hover { flex: 2; }
+.b-color-seg.sel { flex: 3; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2); }
+
+/* ============================
+   C案: インライン行エディタ
+   ============================ */
+.c-card {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05); margin-bottom: 6px;
+  display: flex; align-items: stretch; overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.c-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+.c-color-side { width: 8px; flex-shrink: 0; }
+.c-main { flex: 1; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.c-row1 { display: flex; align-items: center; gap: 8px; }
+.c-name-input {
+  flex: 1; background: transparent; border: none; font-weight: 900; font-size: 1rem;
+  font-family: inherit; outline: none; color: var(--brown);
+  padding: 0; border-bottom: 1.5px solid transparent;
+}
+.c-name-input:focus { border-bottom-color: var(--orange); }
+.c-time-input {
+  background: var(--g100); border: none; border-radius: 6px;
+  padding: 4px 8px; font-weight: 900; font-size: 0.85rem; font-family: inherit;
+  width: 72px; text-align: center; outline: none;
+}
+.c-time-input:focus { background: #fff7ed; }
+.c-dur { font-weight: 700; font-size: 0.75rem; color: var(--g400); white-space: nowrap; }
+
+.c-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.c-chip {
+  background: var(--g100); border-radius: 6px; padding: 2px 8px;
+  font-weight: 700; font-size: 0.7rem; color: var(--g500);
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.c-chip-icon { font-size: 0.65rem; }
+.c-add-chip {
+  background: transparent; border: 1px dashed var(--g300); border-radius: 6px;
+  padding: 2px 8px; font-weight: 700; font-size: 0.7rem; color: var(--g400);
+  cursor: pointer;
+}
+
+.c-actions { display: flex; flex-direction: column; justify-content: center; padding: 0 8px; gap: 4px; border-left: 1px solid var(--g100); }
+.c-act-btn {
+  background: none; border: none; font-size: 0.75rem; cursor: pointer; padding: 2px;
+  color: var(--g300); transition: color 0.2s;
+}
+.c-act-btn:hover { color: var(--brown); }
+.c-act-btn.del:hover { color: var(--red); }
+
+/* 比較 */
+.compare { max-width: 540px; margin: 0 auto; padding: 20px; }
+.compare table { width: 100%; border-collapse: collapse; font-size: 0.8rem; font-weight: 700; }
+.compare th { background: var(--g100); padding: 8px; text-align: left; border-bottom: 2px solid var(--g200); }
+.compare td { padding: 8px; border-bottom: 1px solid var(--g100); vertical-align: top; }
+.good { color: #15803d; } .bad { color: #dc2626; } .mid { color: var(--g500); }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">予定カードのリデザイン提案</div>
+  <div class="page-sub">「入力フォームがダサい」問題の解決案3つ</div>
+</div>
+
+<div class="analysis">
+  <h2>現状の問題点</h2>
+  <ul class="problem-list">
+    <li><strong>フォーム感が強い：</strong>「開始」「長さ」「準備」のラベル＋input が事務的。業務アプリのデータ入力画面に見える</li>
+    <li><strong>情報が一気に出る：</strong>名前・時刻・長さ・準備・もちもの・色の6項目が全部見えていて圧迫感がある</li>
+    <li><strong>色パレットが唐突：</strong>丸ドット10個が並んでいるだけで、何のための色か分からない</li>
+    <li><strong>もちもの入力が地味：</strong>「カンマ区切り」のテキストフィールドは見た目に楽しさがない</li>
+    <li><strong>カードの左線が細くて存在感がない：</strong>色分けの意味を果たしていない</li>
+  </ul>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn" onclick="switchTab('now')">現状</button>
+  <button class="tab-btn active" onclick="switchTab('a')">A案：折りたたみ</button>
+  <button class="tab-btn" onclick="switchTab('b')">B案：セクション型</button>
+  <button class="tab-btn" onclick="switchTab('c')">C案：インライン行</button>
+  <button class="tab-btn" onclick="switchTab('compare')">比較</button>
+</div>
+
+<!-- ===== 現状 ===== -->
+<div id="tab-now" class="tab-content">
+  <div class="proposal-title">現状のカード</div>
+  <div class="proposal-sub">全項目が一度に露出。ラベル＋小さいinputが横並び。色ドットが裸で並ぶ。</div>
+
+  <div class="current-card">
+    <div class="cur-header">
+      <input class="cur-name" value="ピアノ">
+      <span class="cur-del">✕</span>
+    </div>
+    <div class="cur-row">
+      <span>開始</span>
+      <input class="cur-input cur-input-time" type="time" value="17:30">
+      <span>長さ</span>
+      <input class="cur-input" type="number" value="30">
+      <span>分</span>
+      <span>準備</span>
+      <input class="cur-input" type="number" value="10">
+      <span>分前</span>
+    </div>
+    <div class="cur-todos-label">もちもの（カンマ区切り）</div>
+    <input class="cur-todos-input" value="楽譜、れんしゅう帳">
+    <div class="cur-colors">
+      <div class="cur-color" style="background:#ef4444;"></div>
+      <div class="cur-color" style="background:#f97316;"></div>
+      <div class="cur-color" style="background:#eab308;"></div>
+      <div class="cur-color" style="background:#22c55e;"></div>
+      <div class="cur-color" style="background:#3b82f6;"></div>
+      <div class="cur-color sel" style="background:#8b5cf6;"></div>
+      <div class="cur-color" style="background:#ec4899;"></div>
+      <div class="cur-color" style="background:#14b8a6;"></div>
+      <div class="cur-color" style="background:#f43f5e;"></div>
+      <div class="cur-color" style="background:#6366f1;"></div>
+    </div>
+  </div>
+
+  <div class="current-card" style="border-left-color:#22c55e;">
+    <div class="cur-header">
+      <input class="cur-name" value="夜の部">
+      <span class="cur-del">✕</span>
+    </div>
+    <div class="cur-row">
+      <span>開始</span>
+      <input class="cur-input cur-input-time" type="time" value="19:00">
+      <span>長さ</span>
+      <input class="cur-input" type="number" value="60">
+      <span>分</span>
+      <span>準備</span>
+      <input class="cur-input" type="number" value="10">
+      <span>分前</span>
+    </div>
+    <div class="cur-todos-label">もちもの（カンマ区切り）</div>
+    <input class="cur-todos-input" value="テキスト、ノート">
+    <div class="cur-colors">
+      <div class="cur-color" style="background:#ef4444;"></div>
+      <div class="cur-color" style="background:#f97316;"></div>
+      <div class="cur-color" style="background:#eab308;"></div>
+      <div class="cur-color sel" style="background:#22c55e;"></div>
+      <div class="cur-color" style="background:#3b82f6;"></div>
+      <div class="cur-color" style="background:#8b5cf6;"></div>
+      <div class="cur-color" style="background:#ec4899;"></div>
+      <div class="cur-color" style="background:#14b8a6;"></div>
+      <div class="cur-color" style="background:#f43f5e;"></div>
+      <div class="cur-color" style="background:#6366f1;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== A案 ===== -->
+<div id="tab-a" class="tab-content active">
+  <div class="proposal-title">A案：折りたたみカード</div>
+  <div class="proposal-sub">
+    普段はコンパクトに名前＋時刻だけ。タップで開いて編集。<br>
+    情報量を段階的に出すことで圧迫感をなくす。
+  </div>
+
+  <div class="section-label">閉じた状態（一覧）</div>
+  <div class="a-card">
+    <div class="a-card-header">
+      <div class="a-color-bar" style="background:#3b82f6;"></div>
+      <div class="a-info">
+        <div class="a-name-row">
+          <span class="a-name">🏊 水泳</span>
+          <span class="a-time-badge">16:00</span>
+        </div>
+        <div class="a-meta">60分 ｜ 準備15分前 ｜ 📝 3つ</div>
+      </div>
+      <span class="a-chevron">▼</span>
+    </div>
+  </div>
+
+  <div class="a-card">
+    <div class="a-card-header">
+      <div class="a-color-bar" style="background:#8b5cf6;"></div>
+      <div class="a-info">
+        <div class="a-name-row">
+          <span class="a-name">🎹 ピアノ</span>
+          <span class="a-time-badge" style="background:#8b5cf6;">17:30</span>
+        </div>
+        <div class="a-meta">30分 ｜ 準備10分前 ｜ 📝 2つ</div>
+      </div>
+      <span class="a-chevron">▼</span>
+    </div>
+  </div>
+
+  <div class="section-label">開いた状態（編集中）</div>
+  <div class="a-card">
+    <div class="a-card-header" style="border-bottom:1px solid var(--g100);">
+      <div class="a-color-bar" style="background:#22c55e;"></div>
+      <div class="a-info">
+        <div class="a-name-row">
+          <span class="a-name">📚 夜の部</span>
+          <span class="a-time-badge" style="background:#22c55e;">19:00</span>
+        </div>
+        <div class="a-meta">60分 ｜ 準備10分前 ｜ 📝 2つ</div>
+      </div>
+      <span class="a-chevron">▲</span>
+    </div>
+    <div class="a-card-body">
+      <div class="a-field">
+        <span class="a-label">なまえ</span>
+        <input class="a-input" value="夜の部">
+      </div>
+      <div class="a-field">
+        <span class="a-label">いろ</span>
+        <div class="a-colors-row">
+          <div class="a-color-dot" style="background:#ef4444;"></div>
+          <div class="a-color-dot" style="background:#f97316;"></div>
+          <div class="a-color-dot" style="background:#eab308;"></div>
+          <div class="a-color-dot sel" style="background:#22c55e;"></div>
+          <div class="a-color-dot" style="background:#3b82f6;"></div>
+          <div class="a-color-dot" style="background:#8b5cf6;"></div>
+        </div>
+      </div>
+      <div class="a-field">
+        <span class="a-label">開始じかん</span>
+        <input class="a-input" type="time" value="19:00">
+      </div>
+      <div class="a-field">
+        <span class="a-label">ながさ（分）</span>
+        <input class="a-input" type="number" value="60">
+      </div>
+      <div class="a-field">
+        <span class="a-label">じゅんび（分まえ）</span>
+        <input class="a-input" type="number" value="10">
+      </div>
+      <div class="a-field">
+        <span class="a-label" style="visibility:hidden;">_</span>
+      </div>
+      <div class="a-field a-field-full">
+        <span class="a-label">もちもの</span>
+        <input class="a-input" value="テキスト、ノート" placeholder="カンマで くぎってね">
+      </div>
+      <div class="a-footer">
+        <button class="a-del-btn">🗑 この予定を消す</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">評価</div>
+  <ul class="merit-list">
+    <li>一覧時はスッキリ。必要なときだけ展開して編集</li>
+    <li>2カラムグリッドで項目が整理される</li>
+    <li>削除ボタンが目立たない位置で誤操作防止</li>
+  </ul>
+  <ul class="demerit-list">
+    <li>展開するとやっぱり項目が多い（現状の再配置にすぎない）</li>
+    <li>入力フィールド自体のデザインは大きく変わらない</li>
+  </ul>
+</div>
+
+<!-- ===== B案 ===== -->
+<div id="tab-b" class="tab-content">
+  <div class="proposal-title">B案：セクション型カード</div>
+  <div class="proposal-sub">
+    各項目をアイコン付きセクションに分離。もちものはタグチップ形式。<br>
+    色はバー型ピッカーでコンパクトに。全体にゆとりのある配置。
+  </div>
+
+  <div class="b-card">
+    <div class="b-card-top">
+      <span class="b-icon">🏊</span>
+      <input class="b-name-input" value="水泳">
+      <button class="b-del">✕</button>
+    </div>
+    <div class="b-sections">
+      <div class="b-section">
+        <span class="b-sec-icon">🕐</span>
+        <div class="b-sec-content">
+          <div class="b-sec-label">開始じかん</div>
+          <input class="b-sec-input b-sec-input-sm" type="time" value="16:00">
+        </div>
+        <div style="width:1px; height:30px; background:var(--g200);"></div>
+        <div class="b-sec-content">
+          <div class="b-sec-label">ながさ</div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <input class="b-sec-input b-sec-input-sm" type="number" value="60" style="width:50px;">
+            <span style="font-weight:700; font-size:0.8rem; color:var(--g400);">分</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="b-section">
+        <span class="b-sec-icon">⏱</span>
+        <div class="b-sec-content">
+          <div class="b-sec-label">じゅんびを はじめる</div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <input class="b-sec-input b-sec-input-sm" type="number" value="15" style="width:50px;">
+            <span style="font-weight:700; font-size:0.8rem; color:var(--g400);">分まえ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="b-section" style="flex-direction:column; align-items:stretch; gap:6px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="b-sec-icon">🎒</span>
+          <span class="b-sec-label" style="margin:0;">もちもの</span>
+        </div>
+        <div class="b-tags">
+          <span class="b-tag">みずぎ <span class="b-tag-del">✕</span></span>
+          <span class="b-tag">タオル <span class="b-tag-del">✕</span></span>
+          <span class="b-tag">ゴーグル <span class="b-tag-del">✕</span></span>
+          <span class="b-tag-add">＋ ついか</span>
+        </div>
+      </div>
+
+      <div style="padding:0 4px;">
+        <div class="b-sec-label">いろ</div>
+        <div class="b-color-strip">
+          <div class="b-color-seg" style="background:#ef4444;"></div>
+          <div class="b-color-seg" style="background:#f97316;"></div>
+          <div class="b-color-seg" style="background:#eab308;"></div>
+          <div class="b-color-seg" style="background:#22c55e;"></div>
+          <div class="b-color-seg sel" style="background:#3b82f6;"></div>
+          <div class="b-color-seg" style="background:#8b5cf6;"></div>
+          <div class="b-color-seg" style="background:#ec4899;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="b-card">
+    <div class="b-card-top" style="background: linear-gradient(135deg, #faf5ff, #fef3c7);">
+      <span class="b-icon">🎹</span>
+      <input class="b-name-input" value="ピアノ">
+      <button class="b-del">✕</button>
+    </div>
+    <div class="b-sections">
+      <div class="b-section">
+        <span class="b-sec-icon">🕐</span>
+        <div class="b-sec-content">
+          <div class="b-sec-label">開始じかん</div>
+          <input class="b-sec-input b-sec-input-sm" type="time" value="17:30">
+        </div>
+        <div style="width:1px; height:30px; background:var(--g200);"></div>
+        <div class="b-sec-content">
+          <div class="b-sec-label">ながさ</div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <input class="b-sec-input b-sec-input-sm" type="number" value="30" style="width:50px;">
+            <span style="font-weight:700; font-size:0.8rem; color:var(--g400);">分</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="b-section">
+        <span class="b-sec-icon">⏱</span>
+        <div class="b-sec-content">
+          <div class="b-sec-label">じゅんびを はじめる</div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <input class="b-sec-input b-sec-input-sm" type="number" value="10" style="width:50px;">
+            <span style="font-weight:700; font-size:0.8rem; color:var(--g400);">分まえ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="b-section" style="flex-direction:column; align-items:stretch; gap:6px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="b-sec-icon">🎒</span>
+          <span class="b-sec-label" style="margin:0;">もちもの</span>
+        </div>
+        <div class="b-tags">
+          <span class="b-tag">楽譜 <span class="b-tag-del">✕</span></span>
+          <span class="b-tag">れんしゅう帳 <span class="b-tag-del">✕</span></span>
+          <span class="b-tag-add">＋ ついか</span>
+        </div>
+      </div>
+
+      <div style="padding:0 4px;">
+        <div class="b-sec-label">いろ</div>
+        <div class="b-color-strip">
+          <div class="b-color-seg" style="background:#ef4444;"></div>
+          <div class="b-color-seg" style="background:#f97316;"></div>
+          <div class="b-color-seg" style="background:#eab308;"></div>
+          <div class="b-color-seg" style="background:#22c55e;"></div>
+          <div class="b-color-seg" style="background:#3b82f6;"></div>
+          <div class="b-color-seg sel" style="background:#8b5cf6;"></div>
+          <div class="b-color-seg" style="background:#ec4899;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">評価</div>
+  <ul class="merit-list">
+    <li>各項目がアイコン＋セクションで分離されていて視認性が高い</li>
+    <li>もちものがタグチップ形式で直感的（カンマ不要）</li>
+    <li>色バーがコンパクトでカード全体を圧迫しない</li>
+    <li>ヘッダーのグラデーションで色の雰囲気が伝わる</li>
+  </ul>
+  <ul class="demerit-list">
+    <li>1カードあたりの高さが大きい。3件並ぶとスクロール量が増える</li>
+    <li>セクションが多いので「まだ入力することあるの？」感は残る</li>
+  </ul>
+</div>
+
+<!-- ===== C案 ===== -->
+<div id="tab-c" class="tab-content">
+  <div class="proposal-title">C案：インライン行エディタ</div>
+  <div class="proposal-sub">
+    1予定＝1行。名前と時刻をその場で編集。もちものはチップで小さく表示。<br>
+    色は左サイドバーで表現。一覧性が高く、予定が多くても見渡せる。
+  </div>
+
+  <div class="c-card">
+    <div class="c-color-side" style="background:#3b82f6;"></div>
+    <div class="c-main">
+      <div class="c-row1">
+        <input class="c-name-input" value="🏊 水泳">
+        <input class="c-time-input" type="time" value="16:00">
+        <span class="c-dur">60分 ｜ 準備15分前</span>
+      </div>
+      <div class="c-row2">
+        <span class="c-chip"><span class="c-chip-icon">📝</span> みずぎ</span>
+        <span class="c-chip"><span class="c-chip-icon">📝</span> タオル</span>
+        <span class="c-chip"><span class="c-chip-icon">📝</span> ゴーグル</span>
+        <span class="c-add-chip">＋</span>
+      </div>
+    </div>
+    <div class="c-actions">
+      <button class="c-act-btn">✏️</button>
+      <button class="c-act-btn del">🗑</button>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="c-color-side" style="background:#8b5cf6;"></div>
+    <div class="c-main">
+      <div class="c-row1">
+        <input class="c-name-input" value="🎹 ピアノ">
+        <input class="c-time-input" type="time" value="17:30">
+        <span class="c-dur">30分 ｜ 準備10分前</span>
+      </div>
+      <div class="c-row2">
+        <span class="c-chip"><span class="c-chip-icon">📝</span> 楽譜</span>
+        <span class="c-chip"><span class="c-chip-icon">📝</span> れんしゅう帳</span>
+        <span class="c-add-chip">＋</span>
+      </div>
+    </div>
+    <div class="c-actions">
+      <button class="c-act-btn">✏️</button>
+      <button class="c-act-btn del">🗑</button>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="c-color-side" style="background:#22c55e;"></div>
+    <div class="c-main">
+      <div class="c-row1">
+        <input class="c-name-input" value="📚 夜の部">
+        <input class="c-time-input" type="time" value="19:00">
+        <span class="c-dur">60分 ｜ 準備10分前</span>
+      </div>
+      <div class="c-row2">
+        <span class="c-chip"><span class="c-chip-icon">📝</span> テキスト</span>
+        <span class="c-chip"><span class="c-chip-icon">📝</span> ノート</span>
+        <span class="c-add-chip">＋</span>
+      </div>
+    </div>
+    <div class="c-actions">
+      <button class="c-act-btn">✏️</button>
+      <button class="c-act-btn del">🗑</button>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="c-color-side" style="background:#f97316;"></div>
+    <div class="c-main">
+      <div class="c-row1">
+        <input class="c-name-input" value="🍚 ご飯">
+        <input class="c-time-input" type="time" value="12:30">
+        <span class="c-dur">30分 ｜ 準備15分前</span>
+      </div>
+      <div class="c-row2">
+        <span class="c-chip"><span class="c-chip-icon">📝</span> にく</span>
+        <span class="c-chip"><span class="c-chip-icon">📝</span> 魚</span>
+        <span class="c-chip"><span class="c-chip-icon">📝</span> 納豆</span>
+        <span class="c-add-chip">＋</span>
+      </div>
+    </div>
+    <div class="c-actions">
+      <button class="c-act-btn">✏️</button>
+      <button class="c-act-btn del">🗑</button>
+    </div>
+  </div>
+
+  <div class="section-label">評価</div>
+  <ul class="merit-list">
+    <li>一覧性が抜群。4件でも画面内に全部見える</li>
+    <li>名前と時刻がその場で編集できて手軽</li>
+    <li>もちものチップが視覚的で分かりやすい</li>
+    <li>左の色サイドバーでカードの色が一目で分かる</li>
+  </ul>
+  <ul class="demerit-list">
+    <li>「長さ」「準備」の編集が✏️ボタン経由（直接見えない）</li>
+    <li>コンパクトすぎて色の変更UIの置き場がない（別パネルが必要）</li>
+  </ul>
+</div>
+
+<!-- ===== 比較 ===== -->
+<div id="tab-compare" class="tab-content">
+  <div class="proposal-title">比較表</div>
+  <div class="compare">
+    <table>
+      <tr>
+        <th>観点</th><th>A：折りたたみ</th><th>B：セクション型</th><th>C：インライン行</th>
+      </tr>
+      <tr>
+        <td>見た目のスッキリ感</td>
+        <td class="good">◎ 閉じれば1行</td>
+        <td class="mid">○ 整理されてる</td>
+        <td class="good">◎ コンパクト</td>
+      </tr>
+      <tr>
+        <td>編集のしやすさ</td>
+        <td class="mid">○ 開けば普通</td>
+        <td class="good">◎ 項目が見やすい</td>
+        <td class="mid">○ 名前・時刻は楽</td>
+      </tr>
+      <tr>
+        <td>もちもの入力</td>
+        <td class="bad">△ カンマ区切り</td>
+        <td class="good">◎ タグチップ</td>
+        <td class="good">◎ タグチップ</td>
+      </tr>
+      <tr>
+        <td>色の選択</td>
+        <td class="mid">○ ドット</td>
+        <td class="good">◎ バー型</td>
+        <td class="bad">△ 別パネル必要</td>
+      </tr>
+      <tr>
+        <td>一覧性（3件以上）</td>
+        <td class="good">◎ 折りたたみ</td>
+        <td class="bad">△ 縦に長い</td>
+        <td class="good">◎ 全部見える</td>
+      </tr>
+      <tr>
+        <td>世界観との統一</td>
+        <td class="mid">○ 普通</td>
+        <td class="good">◎ アイコンで楽しい</td>
+        <td class="mid">○ シンプル</td>
+      </tr>
+      <tr>
+        <td>実装コスト</td>
+        <td class="good">◎ 低い</td>
+        <td class="mid">○ 中程度</td>
+        <td class="mid">○ 中程度</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:20px; padding:14px; background:#fff7ed; border-radius:12px; border:2px solid #fed7aa;">
+      <div style="font-weight:900; font-size:0.95rem; margin-bottom:6px;">💡 推奨：B案（セクション型）</div>
+      <div style="font-weight:700; font-size:0.8rem; color:var(--g500); line-height:1.5;">
+        「ダサい」の正体は「フォーム感」と「情報の密集」。<br>
+        B案はアイコンとセクション分離で楽しさを保ちつつ、<br>
+        タグチップ＋バー型カラーで入力体験も改善される。<br>
+        A案の折りたたみを組み合わせれば一覧性も確保できる。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>

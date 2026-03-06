@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レイアウト実験室 | じゅんびタイマー</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #fdf6f0;
+  --orange: #f97316;
+  --orange-dark: #ea580c;
+  --brown: #2d2621;
+  --g100: #f3f4f6; --g200: #e5e7eb; --g300: #d1d5db;
+  --g400: #9ca3af; --g500: #6b7280;
+  --green: #22c55e; --blue: #3b82f6; --red: #ef4444; --yellow: #fbbf24;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Zen Maru Gothic', system-ui, sans-serif;
+  background: #1a1a2e; color: var(--brown);
+}
+
+/* ========== パターン切り替えUI ========== */
+.pattern-switcher {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: #1a1a2e; padding: 10px 16px;
+  display: flex; gap: 8px; align-items: center;
+  border-bottom: 2px solid #333;
+}
+.pattern-switcher span { color: #fff; font-weight: 900; font-size: 0.9rem; margin-right: 8px; }
+.pattern-btn {
+  padding: 6px 16px; border: 2px solid #555; border-radius: 8px;
+  background: transparent; color: #aaa; font-weight: 900; font-size: 0.85rem;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.pattern-btn.active { background: var(--orange); color: #fff; border-color: var(--orange); }
+.pattern-btn:hover:not(.active) { border-color: #888; color: #fff; }
+
+/* ========== 共通iPad枠 ========== */
+.device-frame {
+  width: 1024px; height: 668px; /* iPadっぽい比率 */
+  margin: 70px auto 40px;
+  border-radius: 16px; overflow: hidden;
+  background: var(--cream);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: none; /* JSで切り替え */
+}
+.device-frame.visible { display: block; }
+
+/* ================================================================
+   パターン A: タスク中心 — 時計なし・左にタスクドカン・右にカレンダー大
+   ================================================================ */
+.layout-a {
+  display: grid; grid-template-columns: 1fr 1fr;
+  height: 100%; overflow: hidden;
+}
+.layout-a .left {
+  display: flex; flex-direction: column; padding: 16px; gap: 12px;
+}
+.layout-a .right {
+  display: flex; flex-direction: column; padding: 16px; gap: 12px;
+  border-left: 1px solid var(--g200);
+}
+
+/* 日時ヘッダー */
+.a-datetime {
+  display: flex; align-items: baseline; gap: 10px;
+  background: #fff; border-radius: 12px; padding: 10px 16px;
+  border: 1px solid var(--g200);
+}
+.a-date { font-size: 1.4rem; color: var(--g500); font-weight: 900; }
+.a-time { font-size: 3.5rem; font-weight: 900; line-height: 1; }
+
+/* 次の予定カード（ドカンと） */
+.a-next-card {
+  flex: 1; background: linear-gradient(135deg, #fff7ed, #fef3c7);
+  border: 2px solid #fed7aa; border-radius: 16px; padding: 20px;
+  display: flex; flex-direction: column; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.a-next-label { font-size: 1.0rem; font-weight: 700; color: var(--orange); margin-bottom: 4px; }
+.a-next-name { font-size: 2.8rem; font-weight: 900; color: var(--orange-dark); }
+.a-next-countdown { font-size: 4rem; font-weight: 900; color: var(--orange); margin: 8px 0; }
+.a-next-sub { font-size: 1.1rem; font-weight: 700; color: var(--g500); }
+.a-next-items { font-size: 1.0rem; color: var(--g400); font-weight: 700; margin-top: 8px; }
+
+/* しゅっぱつボタン */
+.a-depart-btn {
+  background: linear-gradient(135deg, var(--orange), #f59e0b);
+  color: #fff; font-weight: 900; font-size: 1.8rem;
+  padding: 16px; border: none; border-radius: 16px;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 6px 20px rgba(249,115,22,0.3);
+}
+
+/* パートナー小さく */
+.a-partner {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border-radius: 12px; padding: 10px 14px;
+  border: 1px solid var(--g200);
+}
+.a-partner-icon { font-size: 2.2rem; }
+.a-partner-name { font-weight: 900; font-size: 1.0rem; }
+.a-partner-hearts { font-size: 0.8rem; color: var(--orange); }
+
+/* 右：カレンダー大きく */
+.a-cal-section {
+  flex: 1; background: #fff; border-radius: 12px; padding: 14px;
+  border: 1px solid var(--g200); overflow-y: auto;
+}
+.a-cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.a-cal-title { font-size: 1.5rem; font-weight: 900; }
+.a-cal-nav-btn { background: var(--g100); border: none; border-radius: 6px; width: 40px; height: 40px; font-weight: 900; cursor: pointer; }
+.a-cal-weekday { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.a-cw { font-size: 1.0rem; font-weight: 700; color: var(--g400); padding: 4px 0; }
+.a-cw.sun { color: var(--red); } .a-cw.sat { color: var(--blue); }
+.a-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.a-cal-cell {
+  border-radius: 8px; padding: 6px; min-height: 60px;
+  background: var(--g100); font-weight: 700; font-size: 1.2rem;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+}
+.a-cal-cell.today { outline: 3px solid var(--orange); outline-offset: -1px; }
+.a-cal-cell.perfect { background: #dcfce7; }
+.a-cal-cell.partial { background: #fef9c3; }
+.a-cal-cell.empty { background: transparent; }
+.a-cal-cell.future { color: var(--g300); }
+.a-cal-mini { font-size: 0.7rem; }
+
+/* 今日のタスクリスト（右下） */
+.a-today-tasks {
+  background: #fff; border-radius: 12px; padding: 12px;
+  border: 1px solid var(--g200);
+}
+.a-today-title { font-size: 1.1rem; font-weight: 900; color: var(--g500); margin-bottom: 6px; }
+.a-task-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; background: var(--g100);
+  margin-bottom: 4px; font-size: 1.1rem;
+}
+.a-task-row.next { background: #fff7ed; border: 1px solid #fed7aa; }
+.a-task-row.done { opacity: 0.4; text-decoration: line-through; }
+.a-ev-color { width: 5px; height: 28px; border-radius: 3px; }
+.a-ev-name { font-weight: 900; flex: 1; }
+.a-ev-time { font-weight: 700; color: var(--g400); font-size: 0.95rem; }
+
+/* ステータス */
+.a-stats {
+  display: flex; gap: 8px;
+}
+.a-stat {
+  flex: 1; display: flex; align-items: baseline; gap: 4px; justify-content: center;
+  background: #fff; border-radius: 10px; padding: 8px;
+  border: 1px solid var(--g200);
+}
+.a-stat-num { font-weight: 900; font-size: 1.5rem; color: var(--orange); }
+.a-stat-label { font-size: 0.85rem; font-weight: 700; color: var(--g400); }
+
+
+/* ================================================================
+   パターン B: 縦型カード — 上にプログレスバー・メインにタスク・下にカレンダー横スク
+   ================================================================ */
+.layout-b {
+  display: flex; flex-direction: column; height: 100%; overflow: hidden;
+}
+.b-topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; border-bottom: 1px solid var(--g200);
+  background: #fff;
+}
+.b-date { font-weight: 900; font-size: 1.2rem; color: var(--g500); }
+.b-time { font-weight: 900; font-size: 2.8rem; line-height: 1; }
+.b-partner-mini { font-size: 2rem; margin-left: auto; }
+.b-stats-mini { display: flex; gap: 10px; font-weight: 900; font-size: 1.0rem; color: var(--orange); }
+
+/* プログレスバー */
+.b-progress-section { padding: 12px 20px; background: #fff; border-bottom: 1px solid var(--g200); }
+.b-progress-label { font-size: 0.9rem; font-weight: 700; color: var(--g500); margin-bottom: 6px; }
+.b-progress-track {
+  height: 18px; background: var(--g100); border-radius: 10px; overflow: hidden;
+  position: relative;
+}
+.b-progress-fill {
+  height: 100%; background: linear-gradient(90deg, #86efac, var(--green));
+  border-radius: 10px; width: 60%; transition: width 0.5s;
+}
+.b-progress-markers {
+  display: flex; justify-content: space-between; margin-top: 4px;
+  font-size: 0.75rem; font-weight: 700; color: var(--g400);
+}
+
+/* メイン：横スクロールタスクカード */
+.b-main { flex: 1; padding: 16px 20px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+
+.b-task-scroll {
+  display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+.b-task-card {
+  flex: 0 0 240px; background: #fff; border-radius: 16px; padding: 16px;
+  border: 1px solid var(--g200); display: flex; flex-direction: column;
+}
+.b-task-card.current {
+  flex: 0 0 320px;
+  background: linear-gradient(135deg, #fff7ed, #fef3c7);
+  border: 2px solid #fed7aa;
+}
+.b-task-card.done { opacity: 0.4; }
+.b-tc-time { font-size: 0.9rem; font-weight: 700; color: var(--g400); }
+.b-tc-name { font-size: 1.6rem; font-weight: 900; margin: 4px 0; }
+.b-tc-countdown { font-size: 2.5rem; font-weight: 900; color: var(--orange); }
+.b-tc-items { font-size: 0.9rem; color: var(--g500); font-weight: 700; margin-top: 4px; }
+.b-tc-color { width: 40px; height: 5px; border-radius: 3px; margin-bottom: 6px; }
+.b-tc-status { font-size: 0.85rem; font-weight: 700; color: var(--green); margin-top: auto; }
+.b-tc-btn {
+  margin-top: auto; padding: 12px; border: none; border-radius: 12px;
+  background: linear-gradient(135deg, var(--orange), #f59e0b);
+  color: #fff; font-weight: 900; font-size: 1.3rem;
+  cursor: pointer; font-family: inherit;
+}
+
+/* カレンダー横スクロール */
+.b-cal-strip {
+  display: flex; gap: 6px; padding: 12px 20px;
+  background: #fff; border-top: 1px solid var(--g200);
+  overflow-x: auto;
+}
+.b-cal-day {
+  flex: 0 0 70px; text-align: center; padding: 8px 4px;
+  border-radius: 10px; background: var(--g100);
+}
+.b-cal-day.today { outline: 3px solid var(--orange); }
+.b-cal-day.perfect { background: #dcfce7; }
+.b-cal-day.partial { background: #fef9c3; }
+.b-cal-day-num { font-weight: 900; font-size: 1.3rem; }
+.b-cal-day-label { font-weight: 700; font-size: 0.7rem; color: var(--g400); }
+.b-cal-day-icon { font-size: 0.8rem; }
+
+
+/* ================================================================
+   パターン C: ダッシュボード風 — 時間軸バー＋カレンダー大＋パートナー
+   ================================================================ */
+.layout-c {
+  display: grid; grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr auto;
+  height: 100%; overflow: hidden; gap: 12px; padding: 12px;
+}
+
+/* ヘッダー（全幅） */
+.c-header {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 16px;
+  background: #fff; border-radius: 12px; padding: 10px 20px;
+  border: 1px solid var(--g200);
+}
+.c-date { font-size: 1.2rem; color: var(--g500); font-weight: 900; }
+.c-time { font-size: 3rem; font-weight: 900; line-height: 1; }
+.c-header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.c-stat-inline { font-weight: 900; font-size: 1.2rem; color: var(--orange); }
+
+/* 左：時間軸タイムライン */
+.c-timeline {
+  background: #fff; border-radius: 12px; padding: 14px;
+  border: 1px solid var(--g200); overflow-y: auto;
+}
+.c-tl-title { font-size: 1.1rem; font-weight: 900; color: var(--g500); margin-bottom: 10px; }
+.c-tl-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--g100);
+  position: relative;
+}
+.c-tl-item:last-child { border-bottom: none; }
+.c-tl-time-col { width: 50px; text-align: right; font-weight: 900; font-size: 1.0rem; color: var(--g400); flex-shrink: 0; }
+.c-tl-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--g300); flex-shrink: 0; margin-top: 3px; }
+.c-tl-dot.active { background: var(--orange); box-shadow: 0 0 8px rgba(249,115,22,0.4); }
+.c-tl-dot.done { background: var(--green); }
+.c-tl-content { flex: 1; }
+.c-tl-name { font-weight: 900; font-size: 1.2rem; }
+.c-tl-sub { font-size: 0.85rem; color: var(--g400); font-weight: 700; }
+.c-tl-countdown { font-weight: 900; font-size: 1.5rem; color: var(--orange); }
+
+.c-tl-item.current .c-tl-name { color: var(--orange-dark); font-size: 1.4rem; }
+.c-tl-item.done .c-tl-name { text-decoration: line-through; color: var(--g400); }
+
+/* しゅっぱつボタン（タイムライン内） */
+.c-depart {
+  margin-top: 8px; padding: 10px 20px; border: none; border-radius: 12px;
+  background: linear-gradient(135deg, var(--orange), #f59e0b);
+  color: #fff; font-weight: 900; font-size: 1.2rem;
+  cursor: pointer; font-family: inherit;
+}
+
+/* 右：カレンダー大 */
+.c-cal {
+  background: #fff; border-radius: 12px; padding: 14px;
+  border: 1px solid var(--g200); overflow-y: auto;
+}
+.c-cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.c-cal-title { font-size: 1.4rem; font-weight: 900; }
+.c-cal-btn { background: var(--g100); border: none; border-radius: 6px; width: 36px; height: 36px; font-weight: 900; cursor: pointer; }
+.c-cal-weekday { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.c-cw { font-size: 0.95rem; font-weight: 700; color: var(--g400); padding: 3px 0; }
+.c-cw.sun { color: var(--red); } .c-cw.sat { color: var(--blue); }
+.c-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.c-cal-cell {
+  border-radius: 8px; padding: 5px; min-height: 52px;
+  background: var(--g100); font-weight: 700; font-size: 1.15rem;
+}
+.c-cal-cell.today { outline: 3px solid var(--orange); }
+.c-cal-cell.perfect { background: #dcfce7; }
+.c-cal-cell.partial { background: #fef9c3; }
+.c-cal-cell.empty { background: transparent; }
+.c-cal-cell.future { color: var(--g300); }
+
+/* フッター（全幅） */
+.c-footer {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; border-radius: 12px; padding: 10px 16px;
+  border: 1px solid var(--g200);
+}
+.c-partner-area {
+  display: flex; align-items: center; gap: 10px;
+}
+.c-partner-icon { font-size: 2.5rem; }
+.c-partner-info { }
+.c-partner-name { font-weight: 900; font-size: 1.0rem; }
+.c-partner-hearts { font-size: 0.85rem; color: var(--orange); }
+.c-partner-speech { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 4px 10px; font-weight: 700; font-size: 0.85rem; margin-left: 8px; }
+.c-footer-stats { margin-left: auto; display: flex; gap: 12px; }
+.c-footer-stat { font-weight: 900; font-size: 1.2rem; color: var(--orange); }
+
+/* ラベル */
+.pattern-label {
+  text-align: center; color: #888; font-weight: 900; font-size: 0.85rem;
+  margin-top: -30px; margin-bottom: 10px;
+}
+</style>
+</head>
+<body>
+
+<!-- パターン切り替え -->
+<div class="pattern-switcher">
+  <span>レイアウト実験室</span>
+  <button class="pattern-btn active" onclick="showPattern('a')">A: 左タスク＋右カレンダー</button>
+  <button class="pattern-btn" onclick="showPattern('b')">B: 横スクロールカード</button>
+  <button class="pattern-btn" onclick="showPattern('c')">C: タイムライン＋カレンダー</button>
+</div>
+
+<!-- ================================================================
+     パターン A: タスク中心 — 左にドカンとタスク・右にカレンダー大
+     ================================================================ -->
+<div id="frame-a" class="device-frame visible">
+<div class="layout-a">
+
+  <!-- 左: タスク中心 -->
+  <div class="left">
+    <div class="a-datetime">
+      <span class="a-date">3月4日（火）</span>
+      <span class="a-time">15:42</span>
+    </div>
+
+    <div class="a-next-card">
+      <div class="a-next-label">⏰ つぎの予定まで</div>
+      <div class="a-next-countdown">あと 18ぷん</div>
+      <div class="a-next-name">🏫 じゅく</div>
+      <div class="a-next-sub">16:00 〜 18:00</div>
+      <div class="a-next-items">📝 えんぴつ・ノート・テキスト</div>
+    </div>
+
+    <button class="a-depart-btn">🚀 しゅっぱつ！</button>
+
+    <div class="a-partner">
+      <span class="a-partner-icon">🔥</span>
+      <div>
+        <div class="a-partner-name">ヒトカゲ Lv.3</div>
+        <div class="a-partner-hearts">♥♥♥♡♡</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右: カレンダー大＋今日のタスク一覧 -->
+  <div class="right">
+    <div class="a-cal-section">
+      <div class="a-cal-nav">
+        <button class="a-cal-nav-btn">◀</button>
+        <span class="a-cal-title">2026年 3月</span>
+        <button class="a-cal-nav-btn">▶</button>
+      </div>
+      <div class="a-cal-weekday">
+        <span class="a-cw sun">日</span><span class="a-cw">月</span><span class="a-cw">火</span>
+        <span class="a-cw">水</span><span class="a-cw">木</span><span class="a-cw">金</span><span class="a-cw sat">土</span>
+      </div>
+      <div class="a-cal-grid">
+        <div class="a-cal-cell empty"></div>
+        <div class="a-cal-cell empty"></div>
+        <div class="a-cal-cell empty"></div>
+        <div class="a-cal-cell empty"></div>
+        <div class="a-cal-cell empty"></div>
+        <div class="a-cal-cell empty"></div>
+        <div class="a-cal-cell perfect">1 <span class="a-cal-mini">🌟</span></div>
+        <div class="a-cal-cell perfect">2 <span class="a-cal-mini">🌟</span></div>
+        <div class="a-cal-cell partial">3 <span class="a-cal-mini">△</span></div>
+        <div class="a-cal-cell today">4</div>
+        <div class="a-cal-cell future">5</div>
+        <div class="a-cal-cell future">6</div>
+        <div class="a-cal-cell future">7</div>
+        <div class="a-cal-cell future">8</div>
+        <div class="a-cal-cell future">9</div>
+        <div class="a-cal-cell future">10</div>
+        <div class="a-cal-cell future">11</div>
+        <div class="a-cal-cell future">12</div>
+        <div class="a-cal-cell future">13</div>
+        <div class="a-cal-cell future">14</div>
+        <div class="a-cal-cell future">15</div>
+        <div class="a-cal-cell future">16</div>
+        <div class="a-cal-cell future">17</div>
+        <div class="a-cal-cell future">18</div>
+        <div class="a-cal-cell future">19</div>
+        <div class="a-cal-cell future">20</div>
+        <div class="a-cal-cell future">21</div>
+        <div class="a-cal-cell future">22</div>
+        <div class="a-cal-cell future">23</div>
+        <div class="a-cal-cell future">24</div>
+        <div class="a-cal-cell future">25</div>
+        <div class="a-cal-cell future">26</div>
+        <div class="a-cal-cell future">27</div>
+        <div class="a-cal-cell future">28</div>
+        <div class="a-cal-cell future">29</div>
+        <div class="a-cal-cell future">30</div>
+        <div class="a-cal-cell future">31</div>
+      </div>
+    </div>
+
+    <div class="a-today-tasks">
+      <div class="a-today-title">きょうの予定</div>
+      <div class="a-task-row done">
+        <div class="a-ev-color" style="background:#22c55e"></div>
+        <span class="a-ev-name">🏫 がっこう</span>
+        <span class="a-ev-time">8:00</span>
+      </div>
+      <div class="a-task-row next">
+        <div class="a-ev-color" style="background:#f97316"></div>
+        <span class="a-ev-name">🏫 じゅく</span>
+        <span class="a-ev-time">16:00</span>
+      </div>
+      <div class="a-task-row">
+        <div class="a-ev-color" style="background:#3b82f6"></div>
+        <span class="a-ev-name">🎹 ピアノ</span>
+        <span class="a-ev-time">19:00</span>
+      </div>
+    </div>
+
+    <div class="a-stats">
+      <div class="a-stat"><span class="a-stat-num">5</span><span class="a-stat-label">🔥れんぞく</span></div>
+      <div class="a-stat"><span class="a-stat-num">320</span><span class="a-stat-label">💰pt</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================
+     パターン B: 横スクロールカード
+     ================================================================ -->
+<div id="frame-b" class="device-frame">
+<div class="layout-b">
+
+  <div class="b-topbar">
+    <span class="b-date">3/4（火）</span>
+    <span class="b-time">15:42</span>
+    <div class="b-stats-mini">
+      <span>🔥5</span>
+      <span>💰320</span>
+    </div>
+    <span class="b-partner-mini">🔥</span>
+  </div>
+
+  <div class="b-progress-section">
+    <div class="b-progress-label">きょうの じゅんび：2/3 おわった！</div>
+    <div class="b-progress-track">
+      <div class="b-progress-fill" style="width:66%"></div>
+    </div>
+    <div class="b-progress-markers">
+      <span>🏫 がっこう ✓</span>
+      <span style="color:var(--orange); font-weight:900">🏫 じゅく ← いまここ</span>
+      <span>🎹 ピアノ</span>
+    </div>
+  </div>
+
+  <div class="b-main">
+    <div class="b-task-scroll">
+
+      <div class="b-task-card done">
+        <div class="b-tc-color" style="background:#22c55e"></div>
+        <div class="b-tc-time">8:00 〜 15:00</div>
+        <div class="b-tc-name">🏫 がっこう</div>
+        <div class="b-tc-status">✅ おわった！</div>
+      </div>
+
+      <div class="b-task-card current">
+        <div class="b-tc-color" style="background:#f97316"></div>
+        <div class="b-tc-time">16:00 〜 18:00</div>
+        <div class="b-tc-name">🏫 じゅく</div>
+        <div class="b-tc-countdown">あと 18ぷん</div>
+        <div class="b-tc-items">📝 えんぴつ・ノート・テキスト</div>
+        <button class="b-tc-btn">🚀 しゅっぱつ！</button>
+      </div>
+
+      <div class="b-task-card">
+        <div class="b-tc-color" style="background:#3b82f6"></div>
+        <div class="b-tc-time">19:00 〜 20:00</div>
+        <div class="b-tc-name">🎹 ピアノ</div>
+        <div class="b-tc-items">🎵 楽譜・メトロノーム</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="b-cal-strip">
+    <div class="b-cal-day partial">
+      <div class="b-cal-day-label">月</div>
+      <div class="b-cal-day-num">2</div>
+      <div class="b-cal-day-icon">△</div>
+    </div>
+    <div class="b-cal-day perfect">
+      <div class="b-cal-day-label">火</div>
+      <div class="b-cal-day-num">3</div>
+      <div class="b-cal-day-icon">🌟</div>
+    </div>
+    <div class="b-cal-day today">
+      <div class="b-cal-day-label">水</div>
+      <div class="b-cal-day-num">4</div>
+      <div class="b-cal-day-icon"></div>
+    </div>
+    <div class="b-cal-day">
+      <div class="b-cal-day-label">木</div>
+      <div class="b-cal-day-num">5</div>
+    </div>
+    <div class="b-cal-day">
+      <div class="b-cal-day-label">金</div>
+      <div class="b-cal-day-num">6</div>
+    </div>
+    <div class="b-cal-day">
+      <div class="b-cal-day-label">土</div>
+      <div class="b-cal-day-num">7</div>
+    </div>
+    <div class="b-cal-day">
+      <div class="b-cal-day-label">日</div>
+      <div class="b-cal-day-num">8</div>
+    </div>
+    <div class="b-cal-day">
+      <div class="b-cal-day-label">月</div>
+      <div class="b-cal-day-num">9</div>
+    </div>
+    <div class="b-cal-day">
+      <div class="b-cal-day-label">火</div>
+      <div class="b-cal-day-num">10</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ================================================================
+     パターン C: タイムライン＋カレンダー ダッシュボード
+     ================================================================ -->
+<div id="frame-c" class="device-frame">
+<div class="layout-c">
+
+  <div class="c-header">
+    <span class="c-date">3月4日（火）</span>
+    <span class="c-time">15:42</span>
+    <div class="c-header-right">
+      <span class="c-stat-inline">🔥5</span>
+      <span class="c-stat-inline">💰320</span>
+    </div>
+  </div>
+
+  <!-- 左：タイムライン -->
+  <div class="c-timeline">
+    <div class="c-tl-title">きょうのスケジュール</div>
+
+    <div class="c-tl-item done">
+      <div class="c-tl-time-col">8:00</div>
+      <div class="c-tl-dot done"></div>
+      <div class="c-tl-content">
+        <div class="c-tl-name">🏫 がっこう</div>
+        <div class="c-tl-sub">✅ おわった！</div>
+      </div>
+    </div>
+
+    <div class="c-tl-item current">
+      <div class="c-tl-time-col">16:00</div>
+      <div class="c-tl-dot active"></div>
+      <div class="c-tl-content">
+        <div class="c-tl-name">🏫 じゅく</div>
+        <div class="c-tl-countdown">あと 18ぷん</div>
+        <div class="c-tl-sub">📝 えんぴつ・ノート・テキスト</div>
+        <button class="c-depart">🚀 しゅっぱつ！</button>
+      </div>
+    </div>
+
+    <div class="c-tl-item">
+      <div class="c-tl-time-col">19:00</div>
+      <div class="c-tl-dot"></div>
+      <div class="c-tl-content">
+        <div class="c-tl-name">🎹 ピアノ</div>
+        <div class="c-tl-sub">🎵 楽譜・メトロノーム</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右：カレンダー大 -->
+  <div class="c-cal">
+    <div class="c-cal-nav">
+      <button class="c-cal-btn">◀</button>
+      <span class="c-cal-title">2026年 3月</span>
+      <button class="c-cal-btn">▶</button>
+    </div>
+    <div class="c-cal-weekday">
+      <span class="c-cw sun">日</span><span class="c-cw">月</span><span class="c-cw">火</span>
+      <span class="c-cw">水</span><span class="c-cw">木</span><span class="c-cw">金</span><span class="c-cw sat">土</span>
+    </div>
+    <div class="c-cal-grid">
+      <div class="c-cal-cell empty"></div>
+      <div class="c-cal-cell empty"></div>
+      <div class="c-cal-cell empty"></div>
+      <div class="c-cal-cell empty"></div>
+      <div class="c-cal-cell empty"></div>
+      <div class="c-cal-cell empty"></div>
+      <div class="c-cal-cell perfect">1</div>
+      <div class="c-cal-cell perfect">2</div>
+      <div class="c-cal-cell partial">3</div>
+      <div class="c-cal-cell today">4</div>
+      <div class="c-cal-cell future">5</div>
+      <div class="c-cal-cell future">6</div>
+      <div class="c-cal-cell future">7</div>
+      <div class="c-cal-cell future">8</div>
+      <div class="c-cal-cell future">9</div>
+      <div class="c-cal-cell future">10</div>
+      <div class="c-cal-cell future">11</div>
+      <div class="c-cal-cell future">12</div>
+      <div class="c-cal-cell future">13</div>
+      <div class="c-cal-cell future">14</div>
+      <div class="c-cal-cell future">15</div>
+      <div class="c-cal-cell future">16</div>
+      <div class="c-cal-cell future">17</div>
+      <div class="c-cal-cell future">18</div>
+      <div class="c-cal-cell future">19</div>
+      <div class="c-cal-cell future">20</div>
+      <div class="c-cal-cell future">21</div>
+      <div class="c-cal-cell future">22</div>
+      <div class="c-cal-cell future">23</div>
+      <div class="c-cal-cell future">24</div>
+      <div class="c-cal-cell future">25</div>
+      <div class="c-cal-cell future">26</div>
+      <div class="c-cal-cell future">27</div>
+      <div class="c-cal-cell future">28</div>
+      <div class="c-cal-cell future">29</div>
+      <div class="c-cal-cell future">30</div>
+      <div class="c-cal-cell future">31</div>
+    </div>
+  </div>
+
+  <!-- フッター：パートナー -->
+  <div class="c-footer">
+    <div class="c-partner-area">
+      <span class="c-partner-icon">🔥</span>
+      <div class="c-partner-info">
+        <div class="c-partner-name">ヒトカゲ Lv.3</div>
+        <div class="c-partner-hearts">♥♥♥♡♡</div>
+      </div>
+      <div class="c-partner-speech">じゅくがんばってね！</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+function showPattern(p) {
+  document.querySelectorAll('.device-frame').forEach(f => f.classList.remove('visible'));
+  document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('frame-' + p).classList.add('visible');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
