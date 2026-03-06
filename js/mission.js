@@ -86,12 +86,14 @@ function checkMission(now) {
     const prepStart = ev.startH * 60 + ev.startM - urgencyThresholds.caution;
     const evStart = ev.startH * 60 + ev.startM;
     if (nowMin >= evStart) {
-      // 時間が過ぎた → missed
+      // 時間が過ぎた → missed（ただし起動直後は静かにスキップ）
       if (!missedEvents[evKey]) {
         missedEvents[evKey] = true;
-        if (typeof recordMiss === 'function') recordMiss(ev.name);
-        transitionTo('missed', ev);
-        return;
+        if (typeof _appBooted !== 'undefined' && _appBooted) {
+          if (typeof recordMiss === 'function') recordMiss(ev.name);
+          transitionTo('missed', ev);
+          return;
+        }
       }
       return;
     }

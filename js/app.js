@@ -2,6 +2,8 @@
 //  メインエントリーポイント (v4)
 // =============================================
 
+let _appBooted = false; // 起動直後フラグ（過去イベントを静かにスキップ）
+
 function init() {
   loadSchedule();
   loadGachaData();
@@ -11,6 +13,7 @@ function init() {
   updateStats();
   requestWakeLock();
   tick();
+  _appBooted = true;
   setInterval(tick, 1000);
 }
 
