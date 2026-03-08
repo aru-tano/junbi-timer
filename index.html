@@ -8,7 +8,7 @@
 <title>じゅんびタイマー | Friendly Workshop</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </head>
@@ -91,6 +91,13 @@
           onchange="updateThreshold('critical', +this.value)">
         <span class="urgency-unit">分前</span>
       </div>
+    </div>
+
+    <!-- リセット（常時表示） -->
+    <div class="reset-settings">
+      <div class="urgency-settings-title">🔄 リセット</div>
+      <div class="urgency-settings-desc">予定やポケモンをすべて消して、はじめからやりなおします</div>
+      <button class="reset-all-btn" onclick="resetData('all')">すべてリセットする</button>
     </div>
 
     <!-- メンテナンス（?debug 時のみ表示） -->

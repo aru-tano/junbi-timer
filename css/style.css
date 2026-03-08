@@ -607,6 +607,19 @@ body {
 .urgency-input:focus { border-color: #38bdf8; }
 .urgency-unit { font-size: 0.75rem; font-weight: 700; color: var(--g400); }
 
+/* リセットセクション（常時表示） */
+.reset-settings {
+  background: #fff5f5; border-radius: 0.8rem; padding: 0.8rem;
+  border: 1px solid #fecaca; margin-top: 0.8rem;
+}
+.reset-all-btn {
+  width: 100%; padding: 10px; border: 2px solid #fca5a5; border-radius: 0.6rem;
+  background: #fff; color: #dc2626; font-weight: 900; font-size: 0.85rem;
+  font-family: inherit; cursor: pointer; transition: all 0.2s;
+}
+.reset-all-btn:hover { background: #fee2e2; border-color: #f87171; }
+.reset-all-btn:active { background: #fecaca; }
+
 /* ====================================================
    ともだちさがしオーバーレイ & 演出（完全保持）
    ==================================================== */
