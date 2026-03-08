@@ -148,6 +148,8 @@ function updateEvent(i,key,val) { scheduleData[selectedDay][i][key]=val; saveSch
 function updateEventTime(i,val) { const [h,m]=val.split(':').map(Number); scheduleData[selectedDay][i].startH=h; scheduleData[selectedDay][i].startM=m; saveSchedule(); }
 function updateTodos(i,val) { scheduleData[selectedDay][i].todos = val.split(/[、,]/).map(s=>s.trim()).filter(Boolean); saveSchedule(); }
 function copyToAllDays() {
+  const dayName = DAY_NAMES[selectedDay];
+  if (!confirm(`${dayName}曜日の予定を全曜日にコピーします。他の曜日の予定は上書きされますが、よろしいですか？`)) return;
   const src = JSON.parse(JSON.stringify(scheduleData[selectedDay]||[]));
   for (let i=0;i<7;i++) scheduleData[i]=JSON.parse(JSON.stringify(src));
   saveSchedule(); renderDayTabs(); renderEventList();

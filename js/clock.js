@@ -21,7 +21,7 @@ function defaultSchedule() {
     { name: 'ピアノ', startH: 17, startM: 30, durationMin: 30, prepMin: 10, color: COLORS[5], todos: ['楽譜','れんしゅう帳'] },
     { name: '夜の部', startH: 19, startM: 0, durationMin: 60, prepMin: 10, color: COLORS[3], todos: ['テキスト','ノート'] },
   ];
-  for (let i = 0; i < 7; i++) d[i] = JSON.parse(JSON.stringify(sample));
+  d[new Date().getDay()] = JSON.parse(JSON.stringify(sample));
   return d;
 }
 
