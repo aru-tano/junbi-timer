@@ -16,13 +16,15 @@ let selectedDay = new Date().getDay();
 function defaultSchedule() {
   const d = {};
   for (let i = 0; i < 7; i++) d[i] = [];
-  const sample = [
+  return d;
+}
+
+function sampleSchedule() {
+  return [
     { name: '水泳', startH: 16, startM: 0, durationMin: 60, prepMin: 15, color: COLORS[4], todos: ['みずぎ','タオル','ゴーグル'] },
     { name: 'ピアノ', startH: 17, startM: 30, durationMin: 30, prepMin: 10, color: COLORS[5], todos: ['楽譜','れんしゅう帳'] },
     { name: '夜の部', startH: 19, startM: 0, durationMin: 60, prepMin: 10, color: COLORS[3], todos: ['テキスト','ノート'] },
   ];
-  d[new Date().getDay()] = JSON.parse(JSON.stringify(sample));
-  return d;
 }
 
 function loadSchedule() {

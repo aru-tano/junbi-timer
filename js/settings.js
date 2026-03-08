@@ -252,6 +252,13 @@ function debugAddDays(n) {
   if (typeof checkMilestone === 'function') checkMilestone();
 }
 
+function debugLoadSample() {
+  if (typeof sampleSchedule !== 'function') return;
+  const today = new Date().getDay();
+  scheduleData[today] = JSON.parse(JSON.stringify(sampleSchedule()));
+  saveSchedule(); renderDayTabs(); renderEventList();
+}
+
 function debugAddPoints(n) {
   if (typeof addPoints === 'function') addPoints(n);
 }
