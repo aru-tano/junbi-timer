@@ -22,6 +22,7 @@ let gcalUserEmail = null;
 let gcalLastSync = null;
 let gcalCalendarList = [];       // 取得したカレンダー一覧
 let gcalSelectedCalendars = null; // 選択済みカレンダーID配列（nullなら未設定＝primaryのみ）
+let _gcalSyncing = false;        // 同期中フラグ（多重実行防止）
 
 // Google のカラーID → HEX マッピング
 const GCAL_COLOR_MAP = {
@@ -116,6 +117,8 @@ function gcalDisconnect() {
   gcalCalendarList = [];
   // gcal由来の予定を除去
   removeGcalEvents();
+  saveSchedule();
+  refreshMainView();
   updateGcalUI();
 }
 
@@ -125,13 +128,24 @@ async function gcalFetchCalendarList() {
   if (!gcalAccessToken) return;
   try {
     const resp = await gapi.client.calendar.calendarList.list();
-    gcalCalendarList = (resp.result.items || []).map(cal => ({
-      id: cal.id,
-      summary: cal.summary || cal.id,
-      backgroundColor: cal.backgroundColor || '#3b82f6',
-      primary: !!cal.primary,
-      accessRole: cal.accessRole,
-    }));
+    gcalCalendarList = (resp.result.items || [])
+      // 祝日・誕生日などの特殊カレンダーを除外
+      .filter(cal => {
+        const id = cal.id || '';
+        if (id.endsWith('#holiday@group.v.calendar.google.com')) return false;
+        if (id.endsWith('#contacts@group.v.calendar.google.com')) return false;
+        if (id.endsWith('#weeknum@group.v.calendar.google.com')) return false;
+        // freeBusyReader はイベント詳細が取れないので除外
+        if (cal.accessRole === 'freeBusyReader') return false;
+        return true;
+      })
+      .map(cal => ({
+        id: cal.id,
+        summary: cal.summary || cal.id,
+        backgroundColor: cal.backgroundColor || '#3b82f6',
+        primary: !!cal.primary,
+        accessRole: cal.accessRole,
+      }));
     // primary を先頭に、その後は名前順
     gcalCalendarList.sort((a, b) => {
       if (a.primary) return -1;
@@ -143,10 +157,14 @@ async function gcalFetchCalendarList() {
   }
 }
 
-// --- イベント取得（複数カレンダー対応） ---
+// --- イベント取得（複数カレンダー対応・重複排除・競合防止） ---
 
 async function gcalFetchEvents() {
   if (!gcalAccessToken) return;
+  // 多重実行防止
+  if (_gcalSyncing) return;
+  _gcalSyncing = true;
+
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const end = new Date(start);
@@ -156,11 +174,8 @@ async function gcalFetchEvents() {
     ? gcalSelectedCalendars
     : ['primary'];
 
-  // まず既存のgcal由来を除去
-  removeGcalEvents();
-
   try {
-    // 全カレンダーを並列取得
+    // 全カレンダーを並列取得（削除はまだしない）
     const results = await Promise.allSettled(
       calIds.map(calId =>
         gapi.client.calendar.events.list({
@@ -174,31 +189,43 @@ async function gcalFetchEvents() {
       )
     );
 
+    // iCalUID で重複排除しながらイベントを集約
+    const seenUIDs = new Set();
     const allEvents = [];
     results.forEach((r, i) => {
-      if (r.status === 'fulfilled') {
-        const items = r.value.result.items || [];
-        // カレンダーの色情報を付与
-        const cal = gcalCalendarList.find(c => c.id === calIds[i]);
-        items.forEach(ev => {
-          ev._calColor = cal ? cal.backgroundColor : null;
-          ev._calName = cal ? cal.summary : '';
-        });
-        allEvents.push(...items);
-      }
+      if (r.status !== 'fulfilled') return;
+      const items = r.value.result.items || [];
+      const cal = gcalCalendarList.find(c => c.id === calIds[i]);
+      items.forEach(ev => {
+        // 重複チェック: iCalUID があればそれで、なければ id + 開始時刻で判定
+        const uid = ev.iCalUID || `${ev.id}_${ev.start?.dateTime || ev.start?.date}`;
+        if (seenUIDs.has(uid)) return; // 重複スキップ
+        seenUIDs.add(uid);
+        ev._calColor = cal ? cal.backgroundColor : null;
+        ev._calName = cal ? cal.summary : '';
+        allEvents.push(ev);
+      });
     });
 
+    // API取得が全部終わってから、一括で削除→追加（画面チラつき防止）
+    removeGcalEvents();
     gcalEventsToSchedule(allEvents);
     gcalLastSync = new Date();
     saveSchedule();
-    // メイン画面のタスクリスト更新
-    const nowDate = new Date();
-    if (typeof renderTaskList === 'function') renderTaskList(nowDate);
-    if (typeof renderEventList === 'function') renderEventList();
-    if (typeof renderDayTabs === 'function') renderDayTabs();
+    refreshMainView();
   } catch (e) {
     console.error('GCal fetch error:', e);
+  } finally {
+    _gcalSyncing = false;
   }
+}
+
+// メイン画面の更新をまとめて実行
+function refreshMainView() {
+  const now = new Date();
+  if (typeof renderTaskList === 'function') renderTaskList(now);
+  if (typeof renderEventList === 'function') renderEventList();
+  if (typeof renderDayTabs === 'function') renderDayTabs();
 }
 
 // --- イベント → scheduleData 変換 ---
@@ -268,8 +295,7 @@ function gcalToggleCalendar(calId) {
     gcalSelectedCalendars.push(calId);
   }
   saveGcalSelection();
-  updateGcalUI();
-  // 再同期
+  // 同期してからUI更新（多重実行は _gcalSyncing で防止済み）
   gcalFetchEvents().then(() => updateGcalUI());
 }
 
@@ -307,6 +333,7 @@ function updateGcalUI() {
         }).join('')
       : '<div style="color:var(--g400);font-size:0.8rem;">カレンダーを読み込み中...</div>';
 
+    const syncingLabel = _gcalSyncing ? ' (同期中...)' : '';
     section.innerHTML = `
       <div class="gcal-connected">
         <div class="gcal-status">✅ 連携中${email ? '（' + email + '）' : ''}</div>
@@ -315,7 +342,7 @@ function updateGcalUI() {
           ${calListHtml}
         </div>
         <div class="gcal-actions">
-          <button onclick="gcalSync()" class="gcal-action-btn gcal-sync-btn">🔄 今すぐ同期</button>
+          <button onclick="gcalSync()" class="gcal-action-btn gcal-sync-btn" ${_gcalSyncing ? 'disabled' : ''}>🔄 今すぐ同期${syncingLabel}</button>
           <button onclick="gcalDisconnect()" class="gcal-action-btn gcal-disconnect-btn">🔌 解除</button>
         </div>
         <div class="gcal-last-sync">最終同期: ${syncTime}</div>
