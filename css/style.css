@@ -158,7 +158,7 @@ body {
 /* ===== 右カラム ===== */
 .right-col {
   display: flex; flex-direction: column; gap: 12px;
-  padding: 8px 10px 12px 10px; overflow: hidden;
+  padding: 8px 10px 12px 10px; overflow-y: auto;
   border-left: 1px solid var(--g200);
 }
 
@@ -187,7 +187,7 @@ body {
 .cw.sun { color: var(--red); } .cw.sat { color: var(--blue); }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .cal-cell {
-  border-radius: 5px; padding: 4px 5px; min-height: 48px;
+  border-radius: 5px; padding: 4px 5px; min-height: clamp(32px, 5vh, 48px);
   background: var(--g100); font-weight: 700; font-size: 1.0rem;
   display: flex; flex-direction: column; position: relative;
   transition: background 0.4s, transform 0.3s, box-shadow 0.3s;
@@ -208,11 +208,10 @@ body {
 
 /* ★ パートナーエリア */
 .partner-area {
-  flex: 1; display: flex; align-items: center; gap: 16px;
-  background: #fff; border-radius: 16px; padding: 14px 18px;
+  flex: 0 0 auto; display: flex; align-items: center; gap: 16px;
+  background: #fff; border-radius: 16px; padding: clamp(8px, 1.5vh, 14px) 18px;
   border: 1px solid var(--g200); cursor: pointer;
-  transition: background 0.2s; overflow: hidden;
-  min-height: 0;
+  transition: background 0.2s; overflow: visible;
 }
 .partner-area:hover { background: #fefce8; }
 
@@ -220,7 +219,7 @@ body {
   flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
 }
 .partner-sprite {
-  width: 180px; height: 180px; object-fit: contain;
+  width: clamp(80px, 15vh, 180px); height: clamp(80px, 15vh, 180px); object-fit: contain;
   animation: partnerBob 2s ease infinite;
   filter: drop-shadow(0 6px 12px rgba(0,0,0,0.12));
 }
@@ -903,7 +902,14 @@ body {
   .left-col { padding: 10px 10px; }
   .right-col { padding: 10px 10px; }
   .ring-wrap { width: 140px; height: 140px; }
-  .partner-sprite { width: 140px; height: 140px; }
+  .partner-sprite { width: clamp(80px, 15vh, 140px); height: clamp(80px, 15vh, 140px); }
+}
+
+/* --- 画面高さが低いPC（ノートPC等） --- */
+@media (min-width: 769px) and (max-height: 768px) {
+  .cal-cell { min-height: 36px; padding: 2px 4px; font-size: 0.85rem; }
+  .cal-mini { font-size: 0.5rem; }
+  .partner-speech { padding: 6px 10px; font-size: 0.85rem; }
 }
 
 /* --- PC / 大画面 1025px~ --- */

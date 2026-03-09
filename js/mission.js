@@ -76,6 +76,9 @@ function checkMission(now) {
     return;
   }
 
+  // 設定画面が開いている間はmissed判定を止める
+  const settingsOpen = !document.getElementById('settingsOverlay')?.classList.contains('hidden');
+
   // 次の未完了イベントを探す
   let nextEv = null;
   let nextPrepStart = Infinity;
@@ -83,6 +86,8 @@ function checkMission(now) {
   events.forEach(ev => {
     const evKey = `${ev.name}-${ev.startH}:${ev.startM}`;
     if (completedEvents[evKey] || missedEvents[evKey]) return;
+    // 設定画面が開いている間、または編集中の予定はmissed判定をスキップ
+    if (settingsOpen || ev._editing) return;
     const prepStart = ev.startH * 60 + ev.startM - urgencyThresholds.caution;
     const evStart = ev.startH * 60 + ev.startM;
     if (nowMin >= evStart) {
@@ -417,6 +422,7 @@ function depart() {
     recordCompletion(activeEvent.name, 5, { margin: margin, departTime: departTimeStr });
   }
   addPoints(5);
+  if (typeof onDepartBonus === 'function') onDepartBonus();
   playGentleChime();
   transitionTo('out', activeEvent);
   renderTaskList(new Date());
@@ -432,7 +438,10 @@ function tadaima() {
   updateStats();
   if (typeof renderCalendar === 'function') renderCalendar();
 
-  // ポケモン遭遇判定（30%）→ 当たりならボール演出を先に出す
+  // ただいまボーナス: パートナーに+2exp
+  if (typeof onTadaimaBonus === 'function') onTadaimaBonus();
+
+  // ポケモン遭遇判定 → 当たりならボール演出を先に出す
   if (typeof tryEncounter === 'function' && returnedEvent) {
     const encountered = tryEncounter(returnedEvent);
     if (encountered) {

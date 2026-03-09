@@ -36,6 +36,11 @@ function updateThreshold(key, val) {
   saveUrgencyThresholds();
 }
 function closeSettings() {
+  // 編集中フラグを全予定から除去（設定画面を閉じたらmissed判定を有効にする）
+  for (let d = 0; d < 7; d++) {
+    (scheduleData[d] || []).forEach(ev => delete ev._editing);
+  }
+  saveSchedule();
   document.getElementById('settingsOverlay').classList.add('hidden');
 }
 
@@ -140,7 +145,7 @@ function confirmRemoveEvent(i) {
 
 function addEvent() {
   if (!scheduleData[selectedDay]) scheduleData[selectedDay] = [];
-  scheduleData[selectedDay].push({ name:'あたらしい予定', startH:15, startM:0, durationMin:60, prepMin:15, color:COLORS[scheduleData[selectedDay].length % COLORS.length], todos:[] });
+  scheduleData[selectedDay].push({ name:'あたらしい予定', startH:15, startM:0, durationMin:60, prepMin:15, color:COLORS[scheduleData[selectedDay].length % COLORS.length], todos:[], _editing: true });
   saveSchedule(); renderEventList();
 }
 function removeEvent(i) { scheduleData[selectedDay].splice(i,1); saveSchedule(); renderEventList(); }
