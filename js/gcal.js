@@ -208,8 +208,26 @@ async function gcalFetchEvents() {
     });
 
     // API取得が全部終わってから、一括で削除→追加（画面チラつき防止）
+    // おでかけ中/おかえり中のactiveEventを保護
+    const protectedEvent = (typeof missionState !== 'undefined' &&
+      (missionState === 'out' || missionState === 'prep') &&
+      typeof activeEvent !== 'undefined' && activeEvent && activeEvent.source === 'gcal')
+      ? JSON.parse(JSON.stringify(activeEvent)) : null;
+
     removeGcalEvents();
     gcalEventsToSchedule(allEvents);
+
+    // 保護したイベントが同期で消えていたら復元
+    if (protectedEvent) {
+      const day = new Date().getDay();
+      const exists = (scheduleData[day] || []).some(ev =>
+        ev.source === 'gcal' && ev.name === protectedEvent.name &&
+        ev.startH === protectedEvent.startH && ev.startM === protectedEvent.startM);
+      if (!exists) {
+        if (!scheduleData[day]) scheduleData[day] = [];
+        scheduleData[day].push(protectedEvent);
+      }
+    }
     gcalLastSync = new Date();
     saveSchedule();
     refreshMainView();
@@ -361,3 +379,23 @@ async function gcalSync() {
   await gcalFetchEvents();
   updateGcalUI();
 }
+
+// --- 自動同期 ---
+const GCAL_AUTO_SYNC_INTERVAL = 15 * 60 * 1000; // 15分
+
+// 起動時に前回のトークンがあれば自動同期を試みる
+function gcalAutoSyncInit() {
+  // トークンがなければ何もしない（未接続）
+  if (!gcalAccessToken) return;
+  gcalFetchEvents().then(() => {
+    if (typeof updateGcalUI === 'function') updateGcalUI();
+  });
+}
+
+// 15分ごとの自動同期
+setInterval(() => {
+  if (!gcalAccessToken) return;
+  gcalFetchEvents().then(() => {
+    if (typeof updateGcalUI === 'function') updateGcalUI();
+  });
+}, GCAL_AUTO_SYNC_INTERVAL);

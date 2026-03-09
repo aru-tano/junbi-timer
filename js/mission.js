@@ -11,6 +11,32 @@ let missedEvents = {};
 let wakeLock = null;
 let departTime = null; // しゅっぱつ時刻
 
+// --- completedEvents / missedEvents の永続化（日付付き） ---
+function _todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function loadMissionState() {
+  try {
+    const raw = localStorage.getItem('junbi_timer_mission_state');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    // 今日のデータだけ復元（日付が変わったらリセット）
+    if (data.date === _todayKey()) {
+      completedEvents = data.completed || {};
+      missedEvents = data.missed || {};
+    }
+  } catch(e) {}
+}
+function saveMissionState() {
+  localStorage.setItem('junbi_timer_mission_state', JSON.stringify({
+    date: _todayKey(),
+    completed: completedEvents,
+    missed: missedEvents,
+  }));
+}
+loadMissionState();
+
 // レベル別セリフ（Lv3以上で親密なセリフが混ざる、Lv5以上でさらに）
 const SPEECHES_BASE = {
   calm:     ['きょうもがんばろ！', 'まだ じかん あるよ〜', 'ゆっくり じゅんびしよ'],
@@ -94,6 +120,7 @@ function checkMission(now) {
       // 時間が過ぎた → missed（ただし起動直後は静かにスキップ）
       if (!missedEvents[evKey]) {
         missedEvents[evKey] = true;
+        saveMissionState();
         if (typeof _appBooted !== 'undefined' && _appBooted) {
           if (typeof recordMiss === 'function') recordMiss(ev.name);
           transitionTo('missed', ev);
@@ -409,6 +436,7 @@ function depart() {
   if (!activeEvent) return;
   const evKey = `${activeEvent.name}-${activeEvent.startH}:${activeEvent.startM}`;
   completedEvents[evKey] = true;
+  saveMissionState();
   departTime = (typeof debugGetNow === 'function') ? debugGetNow() : new Date();
 
   // 余裕時間を計算（イベント開始 - 出発時刻）
@@ -618,6 +646,7 @@ function debugReset() {
   activeEvent = null;
   completedEvents = {};
   missedEvents = {};
+  saveMissionState();
   departTime = null;
   transitionTo('idle', null);
   const now = new Date();

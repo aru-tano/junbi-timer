@@ -15,6 +15,11 @@ function init() {
   tick();
   _appBooted = true;
   setInterval(tick, 1000);
+  // Google Calendar自動同期（トークンがあれば起動時に1回取得）
+  if (typeof gcalAutoSyncInit === 'function') {
+    // GAPIの初期化を待ってから実行
+    setTimeout(() => gcalAutoSyncInit(), 3000);
+  }
 }
 
 function tick() {
