@@ -2,10 +2,18 @@
 //  設定画面
 // =============================================
 
+function updateRingTotal(val) {
+  RING_TOTAL = Math.max(10, Math.min(180, val));
+  saveRingTotal();
+}
+
 function openSettings() {
   selectedDay = new Date().getDay();
   renderDayTabs();
   renderEventList();
+  // リング上限の現在値をセット
+  const ringInput = document.getElementById('ringTotalInput');
+  if (ringInput) ringInput.value = RING_TOTAL;
   // しきい値の現在値をセット
   const thCaution = document.getElementById('thCaution');
   const thWarning = document.getElementById('thWarning');

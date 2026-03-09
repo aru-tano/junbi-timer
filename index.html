@@ -8,7 +8,7 @@
 <title>じゅんびタイマー | Friendly Workshop</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/style.css?v=11">
 <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </head>
@@ -64,6 +64,18 @@
     <div class="gcal-settings">
       <div class="gcal-settings-title">📅 Googleカレンダー連携</div>
       <div id="gcalSection"></div>
+    </div>
+
+    <!-- リングゲージ上限 -->
+    <div class="urgency-settings" style="margin-bottom:0.8rem;">
+      <div class="urgency-settings-title">⏱ リングゲージの設定</div>
+      <div class="urgency-settings-desc">リングが満タンになる分数を設定します</div>
+      <div class="urgency-row">
+        <span class="urgency-row-label">リング満タン</span>
+        <input type="number" id="ringTotalInput" min="10" max="180" step="5" class="urgency-input"
+          onchange="updateRingTotal(+this.value)">
+        <span class="urgency-unit">分</span>
+      </div>
     </div>
 
     <!-- 切迫感しきい値 -->
@@ -226,9 +238,9 @@
 <script src="js/gcal.js?v=8"></script>
 <script src="js/pokedex.js?v=7"></script>
 <script src="js/calendar.js?v=7"></script>
-<script src="js/clock.js?v=7"></script>
+<script src="js/clock.js?v=8"></script>
 <script src="js/mission.js?v=8"></script>
-<script src="js/settings.js?v=8"></script>
+<script src="js/settings.js?v=9"></script>
 <script src="js/app.js?v=7"></script>
 </body>
 </html>

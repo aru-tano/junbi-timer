@@ -41,7 +41,18 @@ function saveSchedule() {
 //  リングゲージ
 // =============================================
 const CIRC = 2 * Math.PI * 66; // ≈414.7
-const RING_TOTAL = 60; // 60分満タン
+let RING_TOTAL = 60; // 満タン分数（設定で変更可能）
+
+function loadRingTotal() {
+  try {
+    const raw = localStorage.getItem('junbi_timer_ring_total');
+    if (raw) RING_TOTAL = parseInt(raw, 10) || 60;
+  } catch(e) {}
+}
+function saveRingTotal() {
+  localStorage.setItem('junbi_timer_ring_total', String(RING_TOTAL));
+}
+loadRingTotal();
 
 // しきい値（分）— 設定画面から変更可能
 let urgencyThresholds = { critical: 5, warning: 15, caution: 30 };
