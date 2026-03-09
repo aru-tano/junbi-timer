@@ -142,7 +142,9 @@ function renderCalendar() {
     const subText = (log && !isFuture && (log.completed.length > 0 || log.missed.length > 0))
       ? `<div class="cal-sub">${log.completed.length}/${log.completed.length + log.missed.length}</div>` : '';
 
-    html += `<div class="${cls}">${d}${subText}${icon ? `<div class="cal-mini">${icon}</div>` : ''}</div>`;
+    const clickAttr = (!isFuture && log && (log.completed.length > 0 || log.missed.length > 0))
+      ? `onclick="showDayDetail('${dateStr}')" style="cursor:pointer;"` : '';
+    html += `<div class="${cls}" ${clickAttr}>${d}${subText}${icon ? `<div class="cal-mini">${icon}</div>` : ''}</div>`;
   }
 
   gridEl.innerHTML = html;
@@ -194,6 +196,93 @@ function calNextMonth() {
   calViewMonth++;
   if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
   renderCalendar();
+}
+
+// ====================================================
+//  カレンダー日付タップ → その日の記録ポップアップ
+// ====================================================
+function showDayDetail(dateStr) {
+  const log = calendarLog[dateStr];
+  if (!log) return;
+
+  const d = new Date(dateStr + 'T00:00:00');
+  const weekday = WEEKDAY_NAMES[d.getDay()];
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const tasks = log.tasks || {};
+
+  let cardsHtml = '';
+
+  // 完了タスク
+  for (const name of (log.completed || [])) {
+    const detail = tasks[name];
+    let marginHtml = '';
+    if (detail && detail.margin !== undefined) {
+      const mg = getMarginMessage(detail.margin);
+      marginHtml = `<div class="journal-task-margin ${mg.cls}">${mg.icon} ${mg.text}</div>`;
+    }
+    const timeHtml = detail && detail.departTime
+      ? `<span class="journal-task-time">${detail.departTime} しゅっぱつ</span>` : '';
+    cardsHtml += `
+      <div class="journal-task-card journal-task-done">
+        <div class="journal-task-top">
+          <span class="journal-task-name">✅ ${name}</span>
+          ${timeHtml}
+        </div>
+        ${marginHtml}
+      </div>`;
+  }
+
+  // missedタスク
+  for (const name of (log.missed || [])) {
+    cardsHtml += `
+      <div class="journal-task-card journal-task-missed">
+        <div class="journal-task-top">
+          <span class="journal-task-name">😢 ${name}</span>
+        </div>
+        <div class="journal-task-margin margin-miss">💪 つぎは がんばろう！</div>
+      </div>`;
+  }
+
+  // ポケモンイベント
+  let pokeHtml = '';
+  if (typeof gachaData !== 'undefined' && gachaData.history) {
+    const pokes = [];
+    for (const [idStr, hist] of Object.entries(gachaData.history)) {
+      if (hist.date === dateStr) {
+        const id = Number(idStr);
+        pokes.push({
+          id: id,
+          name: typeof findPokeName === 'function' ? findPokeName(id) : `No.${id}`,
+          method: hist.method || ''
+        });
+      }
+    }
+    if (pokes.length > 0) {
+      const items = pokes.map(pe => {
+        const icon = pe.method === 'さいしょのともだち' ? '🌱' : pe.method === 'しんか' ? '✨' : '🔮';
+        return `<div class="day-detail-poke">${icon}<img src="${SPRITE_SM}${pe.id}.png" class="journal-poke-sprite"> ${pe.name}</div>`;
+      }).join('');
+      pokeHtml = `<div style="margin-top:8px;">${items}</div>`;
+    }
+  }
+
+  const icon = getRateIcon(dateStr);
+  const pts = log.points ? `<span class="journal-date-pts">+${log.points}pt</span>` : '';
+  const total = (log.completed || []).length + (log.missed || []).length;
+  const done = (log.completed || []).length;
+
+  showOverlay(`
+    <div class="day-detail-panel">
+      <div class="day-detail-header">
+        <div class="day-detail-date">${m}/${day}（${weekday}）${icon} ${pts}</div>
+        <button onclick="hideOverlay()" class="btn-close-sm">✕</button>
+      </div>
+      <div class="day-detail-summary">${done}/${total} できた</div>
+      <div class="day-detail-cards">${cardsHtml}</div>
+      ${pokeHtml}
+    </div>
+  `);
 }
 
 // ====================================================
