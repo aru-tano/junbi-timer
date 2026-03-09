@@ -583,6 +583,17 @@ body {
 .gcal-disconnect-btn { background: var(--g100); color: var(--g500); }
 .gcal-disconnect-btn:hover { background: var(--g200); }
 .gcal-last-sync { font-size: 0.7rem; color: var(--g400); font-weight: 700; }
+.gcal-cal-list { margin: 6px 0; }
+.gcal-cal-list-title { font-weight: 900; font-size: 0.8rem; color: var(--brown); margin-bottom: 4px; }
+.gcal-cal-item {
+  display: flex; align-items: center; gap: 6px; padding: 5px 4px;
+  cursor: pointer; border-radius: 6px; transition: background 0.15s;
+  font-size: 0.85rem; font-weight: 700;
+}
+.gcal-cal-item:hover { background: #f0f9ff; }
+.gcal-cal-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4285f4; cursor: pointer; }
+.gcal-cal-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.gcal-cal-name { flex: 1; color: var(--brown); }
 
 /* しきい値設定 */
 .urgency-settings {
