@@ -341,12 +341,53 @@ function showTaskDetailByTime(h, m) {
   if (ev) showTaskDetail(ev);
 }
 
+// --- サブタスクチェック状態（当日のみ、localStorageで永続化）---
+let todoChecks = {};
+function _todoChecksKey() { return 'junbi_timer_todo_checks'; }
+function loadTodoChecks() {
+  try {
+    const raw = localStorage.getItem(_todoChecksKey());
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.date === _todayKey()) {
+      todoChecks = data.checks || {};
+    } else {
+      todoChecks = {};
+    }
+  } catch(e) {}
+}
+function saveTodoChecks() {
+  localStorage.setItem(_todoChecksKey(), JSON.stringify({
+    date: _todayKey(),
+    checks: todoChecks,
+  }));
+}
+function toggleTodoCheck(evKey, todoIdx) {
+  if (!todoChecks[evKey]) todoChecks[evKey] = {};
+  todoChecks[evKey][todoIdx] = !todoChecks[evKey][todoIdx];
+  saveTodoChecks();
+  // 再描画
+  if (_currentDetailEv) showTaskDetail(_currentDetailEv);
+}
+loadTodoChecks();
+
+let _currentDetailEv = null;
+
 function showTaskDetail(ev) {
+  _currentDetailEv = ev;
   const startStr = `${ev.startH}:${String(ev.startM).padStart(2,'0')}`;
   const endMin = ev.startH * 60 + ev.startM + ev.durationMin;
   const endStr = `${Math.floor(endMin/60)}:${String(endMin%60).padStart(2,'0')}`;
+  const evKey = `${ev.name}-${ev.startH}:${ev.startM}`;
+  const checks = todoChecks[evKey] || {};
+
   const todosHtml = ev.todos && ev.todos.length > 0
-    ? ev.todos.map(t => `<div class="td-todo-item">• ${t}</div>`).join('')
+    ? ev.todos.map((t, i) => {
+        const checked = !!checks[i];
+        const cls = checked ? 'td-todo-item checked' : 'td-todo-item';
+        const icon = checked ? '✅' : '⬜';
+        return `<div class="${cls}" onclick="toggleTodoCheck('${evKey}',${i})">${icon} ${t}</div>`;
+      }).join('')
     : '<div class="td-empty">登録なし</div>';
 
   const overlay = document.getElementById('taskDetailOverlay');
@@ -366,6 +407,7 @@ function showTaskDetail(ev) {
 }
 
 function closeTaskDetail() {
+  _currentDetailEv = null;
   const overlay = document.getElementById('taskDetailOverlay');
   if (overlay) overlay.classList.remove('visible');
 }

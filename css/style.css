@@ -581,7 +581,15 @@ body {
 .td-prep { font-weight: 700; font-size: 0.9rem; color: var(--orange); margin-bottom: 12px; }
 .td-todos-title { font-weight: 900; font-size: 0.95rem; color: var(--brown); margin-bottom: 6px; }
 .td-todos { text-align: left; margin-bottom: 12px; }
-.td-todo-item { font-weight: 700; font-size: 1rem; color: var(--brown); padding: 3px 0; }
+.td-todo-item {
+  font-weight: 700; font-size: 1rem; color: var(--brown); padding: 8px 10px;
+  cursor: pointer; border-radius: 8px; transition: all 0.2s;
+  user-select: none; -webkit-user-select: none;
+}
+.td-todo-item:active { background: var(--g100); }
+.td-todo-item.checked {
+  text-decoration: line-through; color: var(--g400);
+}
 .td-empty { font-weight: 700; font-size: 0.85rem; color: var(--g400); text-align: center; }
 .td-close {
   background: var(--g200); border: none; font-weight: 900; font-size: 0.95rem;
