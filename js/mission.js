@@ -260,9 +260,10 @@ function renderFocusCard(now) {
   if (focusName) focusName.textContent = ev.name;
   if (focusTimeStr) focusTimeStr.textContent = `${ev.startH}:${String(ev.startM).padStart(2,'0')} 〜 ${endStr}`;
   if (focusItems && ev.todos && ev.todos.length > 0) {
-    focusItems.textContent = '📝 ' + ev.todos.join('・');
+    const evKey = `${ev.name}-${ev.startH}:${ev.startM}`;
+    focusItems.innerHTML = '📝 ' + renderTodosInline(ev.todos, evKey);
   } else if (focusItems) {
-    focusItems.textContent = '';
+    focusItems.innerHTML = '';
   }
 
   updateRingGauge(Math.max(0, minutesLeft));
@@ -313,7 +314,7 @@ function renderTaskList(now) {
     }
 
     const todosHtml = ev.todos && ev.todos.length > 0
-      ? `<div class="tl-todos">📝 ${ev.todos.join('・')}</div>` : '';
+      ? `<div class="tl-todos">📝 ${renderTodosInline(ev.todos, evKey)}</div>` : '';
 
     return `<div class="${rowCls}" onclick="showTaskDetailByTime(${ev.startH},${ev.startM})">
       <div class="tl-main">
@@ -370,6 +371,17 @@ function toggleTodoCheck(evKey, todoIdx) {
   if (_currentDetailEv) showTaskDetail(_currentDetailEv);
 }
 loadTodoChecks();
+
+// インライン表示用: チェック済みは取り消し線
+function renderTodosInline(todos, evKey) {
+  const checks = todoChecks[evKey] || {};
+  return todos.map((t, i) => {
+    if (checks[i]) {
+      return `<span class="todo-inline checked">✅ <s>${t}</s></span>`;
+    }
+    return `<span class="todo-inline">⬜ ${t}</span>`;
+  }).join(' ');
+}
 
 let _currentDetailEv = null;
 
