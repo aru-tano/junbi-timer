@@ -347,7 +347,7 @@ function showTaskDetail(ev) {
   const endStr = `${Math.floor(endMin/60)}:${String(endMin%60).padStart(2,'0')}`;
   const todosHtml = ev.todos && ev.todos.length > 0
     ? ev.todos.map(t => `<div class="td-todo-item">• ${t}</div>`).join('')
-    : '<div class="td-empty">持ち物の登録なし</div>';
+    : '<div class="td-empty">登録なし</div>';
 
   const overlay = document.getElementById('taskDetailOverlay');
   if (!overlay) return;
@@ -357,7 +357,7 @@ function showTaskDetail(ev) {
       <div class="td-name">${ev.name}</div>
       <div class="td-time">🕐 ${startStr} 〜 ${endStr}（${ev.durationMin}分）</div>
       <div class="td-prep">⏱ ${urgencyThresholds.caution}分前からおしらせ</div>
-      <div class="td-todos-title">📝 もちもの</div>
+      <div class="td-todos-title">📝 もちもの・やること</div>
       <div class="td-todos">${todosHtml}</div>
       <button class="td-close" onclick="closeTaskDetail()">とじる</button>
     </div>

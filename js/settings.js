@@ -111,7 +111,7 @@ function renderEventList() {
         <div class="ev-section ev-section-col">
           <div class="ev-sec-header">
             <span class="ev-sec-icon">🎒</span>
-            <span class="ev-sec-label">もちもの</span>
+            <span class="ev-sec-label">もちもの・やること</span>
           </div>
           <div class="ev-tags">${todosHtml}</div>
         </div>
@@ -133,7 +133,7 @@ function removeTodo(evIdx, todoIdx) {
 }
 
 function promptAddTodo(evIdx) {
-  const text = prompt('もちものを入力してね');
+  const text = prompt('もちもの・やることを入力してね');
   if (!text || !text.trim()) return;
   const ev = scheduleData[selectedDay][evIdx];
   if (!ev.todos) ev.todos = [];
