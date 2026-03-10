@@ -327,6 +327,11 @@ function renderTaskList(now) {
   }).join('');
 }
 
+// --- フォーカスカードタップ → タスク詳細 ---
+function onFocusCardTap() {
+  if (activeEvent) showTaskDetail(activeEvent);
+}
+
 // --- タスク詳細ポップアップ ---
 function showTaskDetailByTime(h, m) {
   const now = (typeof debugGetNow === 'function') ? debugGetNow() : new Date();

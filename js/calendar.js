@@ -4,6 +4,8 @@
 
 let calendarLog = {};
 let calViewYear, calViewMonth;
+let calViewMode = 'month'; // 'month' | 'week'
+let calViewWeekStart = null; // 週表示の起点日（日曜）
 
 const SPRITE_SM = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
 
@@ -97,12 +99,21 @@ function getRateIcon(dateKey) {
 
 // --- カレンダー描画 (v4: 緑グラデ) ---
 function renderCalendar() {
+  if (calViewMode === 'week') {
+    renderCalendarWeek();
+  } else {
+    renderCalendarMonth();
+  }
+}
+
+function renderCalendarMonth() {
   const titleEl = document.getElementById('calTitle');
   const gridEl = document.getElementById('calGrid');
   const totalEl = document.getElementById('calTotal');
   if (!titleEl || !gridEl) return;
 
   titleEl.textContent = `${calViewYear}年${calViewMonth + 1}月`;
+  gridEl.classList.remove('week-view');
 
   const firstDay = new Date(calViewYear, calViewMonth, 1).getDay();
   const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
@@ -149,9 +160,80 @@ function renderCalendar() {
 
   gridEl.innerHTML = html;
 
-  // トータル表示
   if (totalEl) {
     totalEl.textContent = `🌟 ${daysWithCompleted}/${totalDaysWithEvents || 0}日 できた`;
+  }
+}
+
+function renderCalendarWeek() {
+  const titleEl = document.getElementById('calTitle');
+  const gridEl = document.getElementById('calGrid');
+  const totalEl = document.getElementById('calTotal');
+  if (!titleEl || !gridEl) return;
+
+  if (!calViewWeekStart) {
+    const now = new Date();
+    calViewWeekStart = new Date(now);
+    calViewWeekStart.setDate(calViewWeekStart.getDate() - calViewWeekStart.getDay());
+    calViewWeekStart.setHours(0, 0, 0, 0);
+  }
+
+  // タイトル: 「3/8 〜 3/14」形式
+  const weekEnd = new Date(calViewWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  titleEl.textContent = `${calViewWeekStart.getMonth()+1}/${calViewWeekStart.getDate()} 〜 ${weekEnd.getMonth()+1}/${weekEnd.getDate()}`;
+
+  gridEl.classList.add('week-view');
+
+  const today = new Date();
+  const todayStr = localDateStr(today);
+
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(calViewWeekStart);
+    d.setDate(d.getDate() + i);
+    const dateStr = localDateStr(d);
+    const isToday = dateStr === todayStr;
+    const isFuture = d > today;
+    const log = calendarLog[dateStr];
+    const dayOfWeek = d.getDay();
+
+    let cls = 'cal-cell';
+    if (isToday) cls += ' today';
+
+    if (isFuture) {
+      cls += ' future';
+    } else {
+      cls += ' ' + getRateClass(dateStr);
+    }
+
+    const icon = isFuture ? '' : getRateIcon(dateStr);
+    const subText = (log && !isFuture && (log.completed.length > 0 || log.missed.length > 0))
+      ? `<div class="cal-sub">${log.completed.length}/${log.completed.length + log.missed.length}</div>` : '';
+
+    // 週表示: その曜日の予定を表示
+    let eventsHtml = '';
+    if (typeof scheduleData !== 'undefined') {
+      const dayEvents = scheduleData[dayOfWeek] || [];
+      if (dayEvents.length > 0) {
+        const items = dayEvents.slice(0, 3).map(ev => {
+          const timeStr = `${ev.startH}:${String(ev.startM).padStart(2,'0')}`;
+          return `<div class="cal-ev-dot"><span style="color:${ev.color}">●</span> ${timeStr} ${ev.name}</div>`;
+        }).join('');
+        eventsHtml = `<div class="cal-cell-events">${items}</div>`;
+      }
+    }
+
+    const clickAttr = (!isFuture && log && (log.completed.length > 0 || log.missed.length > 0))
+      ? `onclick="showDayDetail('${dateStr}')" style="cursor:pointer;"` : '';
+
+    html += `<div class="${cls}" ${clickAttr}>${d.getDate()}${subText}${icon ? `<div class="cal-mini">${icon}</div>` : ''}${eventsHtml}</div>`;
+  }
+
+  gridEl.innerHTML = html;
+
+  if (totalEl) {
+    totalEl.textContent = '';
   }
 }
 
@@ -187,16 +269,49 @@ function calcStreak() {
   return streak;
 }
 
-function calPrevMonth() {
-  calViewMonth--;
-  if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+// --- ビュー切り替え ---
+function setCalView(mode) {
+  calViewMode = mode;
+  const btnM = document.getElementById('calBtnMonth');
+  const btnW = document.getElementById('calBtnWeek');
+  if (btnM) btnM.classList.toggle('active', mode === 'month');
+  if (btnW) btnW.classList.toggle('active', mode === 'week');
+  if (mode === 'week' && !calViewWeekStart) {
+    // 今週の日曜を起点にする
+    const now = new Date();
+    const d = new Date(now);
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+    calViewWeekStart = d;
+  }
   renderCalendar();
 }
-function calNextMonth() {
-  calViewMonth++;
-  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+
+// --- ◀ ▶ 統合ナビ ---
+function calPrev() {
+  if (calViewMode === 'month') {
+    calViewMonth--;
+    if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+  } else {
+    calViewWeekStart = new Date(calViewWeekStart);
+    calViewWeekStart.setDate(calViewWeekStart.getDate() - 7);
+  }
   renderCalendar();
 }
+function calNext() {
+  if (calViewMode === 'month') {
+    calViewMonth++;
+    if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+  } else {
+    calViewWeekStart = new Date(calViewWeekStart);
+    calViewWeekStart.setDate(calViewWeekStart.getDate() + 7);
+  }
+  renderCalendar();
+}
+
+// 後方互換
+function calPrevMonth() { calPrev(); }
+function calNextMonth() { calNext(); }
 
 // ====================================================
 //  カレンダー日付タップ → その日の記録ポップアップ

@@ -8,7 +8,7 @@
 <title>じゅんびタイマー | Friendly Workshop</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=14">
 <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </head>
@@ -56,8 +56,8 @@
     <div id="eventList" class="event-list"></div>
     <button onclick="addEvent()" class="add-event-btn">＋ 予定をついか</button>
     <div class="copy-section">
-      <button onclick="copyToAllDays()" class="copy-btn">この曜日の予定を全曜日にコピー</button>
-      <div class="copy-note">※ 上書きされます</div>
+      <button onclick="showCopyDayPicker()" class="copy-btn">📋 この曜日の予定を別の曜日にコピー</button>
+      <div id="copyDayPicker" class="copy-day-picker hidden"></div>
     </div>
 
     <!-- Googleカレンダー連携 -->
@@ -151,7 +151,7 @@
   <div class="left-col">
 
     <!-- フォーカスカード -->
-    <div class="focus-card" id="focusCard">
+    <div class="focus-card" id="focusCard" onclick="onFocusCardTap()" style="cursor:pointer;">
       <div class="ring-wrap">
         <svg class="ring-svg" viewBox="0 0 160 160">
           <circle class="ring-bg" cx="80" cy="80" r="66"/>
@@ -196,11 +196,17 @@
     <div class="cal-section" id="calSection">
       <div class="cal-header-row">
         <div class="cal-nav">
-          <button class="cal-btn" onclick="calPrevMonth()">◀</button>
+          <button class="cal-btn" onclick="calPrev()">◀</button>
           <span class="cal-title" id="calTitle"></span>
-          <button class="cal-btn" onclick="calNextMonth()">▶</button>
+          <button class="cal-btn" onclick="calNext()">▶</button>
         </div>
-        <span class="cal-total" id="calTotal"></span>
+        <div class="cal-header-right">
+          <span class="cal-total" id="calTotal"></span>
+          <div class="cal-view-toggle">
+            <button class="cal-vt-btn active" id="calBtnMonth" onclick="setCalView('month')">月</button>
+            <button class="cal-vt-btn" id="calBtnWeek" onclick="setCalView('week')">週</button>
+          </div>
+        </div>
       </div>
       <div class="cal-weekday">
         <span class="cw sun">日</span><span class="cw">月</span><span class="cw">火</span>
@@ -237,10 +243,10 @@
 <!-- JS (alarm.js 除外) -->
 <script src="js/gcal.js?v=10"></script>
 <script src="js/pokedex.js?v=7"></script>
-<script src="js/calendar.js?v=8"></script>
+<script src="js/calendar.js?v=9"></script>
 <script src="js/clock.js?v=8"></script>
-<script src="js/mission.js?v=9"></script>
-<script src="js/settings.js?v=9"></script>
+<script src="js/mission.js?v=10"></script>
+<script src="js/settings.js?v=10"></script>
 <script src="js/app.js?v=8"></script>
 </body>
 </html>

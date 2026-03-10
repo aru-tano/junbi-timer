@@ -160,12 +160,25 @@ function removeEvent(i) { scheduleData[selectedDay].splice(i,1); saveSchedule();
 function updateEvent(i,key,val) { scheduleData[selectedDay][i][key]=val; saveSchedule(); if(key==='color') renderEventList(); }
 function updateEventTime(i,val) { const [h,m]=val.split(':').map(Number); scheduleData[selectedDay][i].startH=h; scheduleData[selectedDay][i].startM=m; saveSchedule(); }
 function updateTodos(i,val) { scheduleData[selectedDay][i].todos = val.split(/[、,]/).map(s=>s.trim()).filter(Boolean); saveSchedule(); }
-function copyToAllDays() {
-  const dayName = DAY_NAMES[selectedDay];
-  if (!confirm(`${dayName}曜日の予定を全曜日にコピーします。他の曜日の予定は上書きされますが、よろしいですか？`)) return;
-  const src = JSON.parse(JSON.stringify(scheduleData[selectedDay]||[]));
-  for (let i=0;i<7;i++) scheduleData[i]=JSON.parse(JSON.stringify(src));
-  saveSchedule(); renderDayTabs(); renderEventList();
+function showCopyDayPicker() {
+  const picker = document.getElementById('copyDayPicker');
+  if (!picker) return;
+  const isVisible = !picker.classList.contains('hidden');
+  if (isVisible) { picker.classList.add('hidden'); return; }
+  // 選択中の曜日以外をボタンで表示
+  picker.innerHTML = DAY_NAMES.map((name, i) => {
+    if (i === selectedDay) return '';
+    return `<button class="copy-day-btn" onclick="copyToDay(${i})">${name}</button>`;
+  }).join('');
+  picker.classList.remove('hidden');
+}
+function copyToDay(targetDay) {
+  const srcName = DAY_NAMES[selectedDay];
+  const dstName = DAY_NAMES[targetDay];
+  if (!confirm(`${srcName}曜日の予定を${dstName}曜日にコピーします。${dstName}曜日の予定は上書きされますが、よろしいですか？`)) return;
+  scheduleData[targetDay] = JSON.parse(JSON.stringify(scheduleData[selectedDay] || []));
+  saveSchedule(); renderDayTabs();
+  document.getElementById('copyDayPicker').classList.add('hidden');
 }
 
 // =============================================
